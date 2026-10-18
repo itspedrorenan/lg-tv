@@ -3,27 +3,31 @@
 <head>
 <title>Launcher da Sala</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Manrope:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@200;400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: palco fixo 1920x1080 escalado para caber na tela; relógio no topo, linha de streamings, linha de entradas, dicas do controle no rodapé.
-   Alvo: Chromium 53 do webOS 4 — sem CSS grid, sem flex gap, só transform/opacity animados. */
+/* Layout: dashboard em duas colunas num palco fixo 1920x1080 escalado para a tela.
+   Esquerda: saudação, relógio e o painel "Agora". Direita: apps e a lista de entradas.
+   Alvo: Chromium 53 do webOS 4 — sem CSS grid, sem flex gap, só transform animado. */
 :root {
-  --ink: #0b0e14;        /* fundo */
-  --panel: #161a23;      /* superfície dos blocos de entrada */
-  --line: #262c39;       /* bordas discretas */
-  --text: #eef1f6;
-  --muted: #8a93a5;
-  --focus: #ffc65c;      /* anel de foco, âmbar */
-  --font-display: "Unbounded", "Arial Black", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "Manrope", "LG Smart UI", "Helvetica Neue", Arial, sans-serif;
+  --bg: #0f1113;
+  --panel: #16191c;
+  --panel-hi: #1e2226;
+  --line: #23272c;
+  --text: #eceef0;
+  --muted: #7b828b;
+  --focus: #cddcf5;      /* anel de foco, azul-gelo */
+  --ok: #5ccf96;         /* status: conectado / jogando */
+  --font: "Onest", "LG Smart UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "DejaVu Sans Mono", Menlo, monospace;
   color-scheme: dark;
 }
 html, body { height: 100%; }
+[hidden] { display: none !important; }
 body {
   margin: 0;
-  background: var(--ink);
+  background: var(--bg);
   color: var(--text);
-  font-family: var(--font-body);
+  font-family: var(--font);
   overflow: hidden;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -34,74 +38,88 @@ body {
   position: absolute; left: 0; top: 0;
   width: 1920px; height: 1080px;
   transform-origin: 0 0;
-  padding: 88px 120px 72px;
+  padding: 84px 112px 72px;
   box-sizing: border-box;
-  display: flex; flex-direction: column;
+  display: flex;
 }
 
-/* topo */
-.top { display: flex; align-items: flex-end; justify-content: space-between; }
-.clock { font-family: var(--font-display); font-weight: 400; font-size: 148px; line-height: 1; letter-spacing: -4px; font-variant-numeric: tabular-nums; }
-.date { margin-top: 18px; font-size: 34px; color: var(--muted); font-weight: 600; }
-.device { font-size: 24px; color: var(--muted); text-align: right; line-height: 1.5; }
-.device b { color: var(--text); font-weight: 600; }
+.label { font-size: 19px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
 
-/* seções */
-.section { margin-top: 56px; }
-.section + .section { margin-top: 56px; }
-.label { font-size: 22px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin: 0 0 22px 4px; }
-.row { display: flex; }
+/* coluna esquerda */
+.side { width: 560px; margin-right: 64px; display: flex; flex-direction: column; flex-shrink: 0; }
+.greeting { font-size: 30px; color: var(--muted); }
+.clock { font-size: 196px; font-weight: 200; line-height: 1; letter-spacing: -6px; margin: 18px 0 0 -8px; font-variant-numeric: tabular-nums; }
+.date { font-size: 30px; color: var(--muted); margin-top: 20px; }
 
-/* bloco genérico */
+.now { margin-top: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 28px; padding: 32px; }
+.now-head { display: flex; align-items: center; justify-content: space-between; }
+.now-state { font-size: 20px; color: var(--muted); display: flex; align-items: center; }
+.now-body { display: flex; align-items: center; margin-top: 28px; }
+.cover { width: 148px; height: 148px; border-radius: 18px; flex-shrink: 0; margin-right: 28px; background: var(--panel-hi); overflow: hidden; position: relative; }
+.cover img { width: 100%; height: 100%; display: block; }
+.cover-letter { position: absolute; left: 0; top: 0; width: 100%; height: 100%; line-height: 148px; text-align: center; font-size: 64px; font-weight: 200; color: var(--muted); }
+.now-title { font-size: 40px; font-weight: 600; line-height: 1.15; max-height: 92px; overflow: hidden; }
+.now-meta { font-size: 22px; color: var(--muted); margin-top: 10px; }
+.now.is-idle .now-title { color: var(--muted); font-weight: 400; font-size: 34px; }
+
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 6px; background: var(--line); margin-right: 12px; flex-shrink: 0; }
+.dot.is-on { background: var(--ok); }
+
+/* coluna direita */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.main .label { margin: 0 0 20px 4px; }
+.group + .group { margin-top: 52px; }
+.apps { display: flex; }
+
 .tile {
   position: relative;
   box-sizing: border-box;
-  border: 5px solid transparent;
-  border-radius: 22px;
-  margin-right: 36px;
+  background: var(--panel);
+  border: 3px solid transparent;
+  border-radius: 24px;
   cursor: pointer;
-  opacity: .62;
-  transition: transform .16s ease-out, opacity .16s ease-out;
-  -webkit-transition: -webkit-transform .16s ease-out, opacity .16s ease-out;
   outline: none;
+  transition: transform .15s ease-out, background-color .15s;
+  -webkit-transition: -webkit-transform .15s ease-out, background-color .15s;
 }
-.tile:last-child { margin-right: 0; }
-.tile.is-focused { opacity: 1; border-color: var(--focus); transform: scale(1.05); -webkit-transform: scale(1.05); }
+.tile.is-focused { background: var(--panel-hi); border-color: var(--focus); transform: scale(1.03); -webkit-transform: scale(1.03); }
 
-/* streamings */
-.app { width: 536px; height: 330px; padding: 40px 44px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
-.app .name { font-family: var(--font-display); font-weight: 600; font-size: 60px; line-height: 1.05; letter-spacing: -1px; color: #fff; }
-.app .kind { font-size: 26px; font-weight: 600; color: rgba(255,255,255,.78); }
-.app .glyph { position: absolute; right: -30px; bottom: -70px; font-family: var(--font-display); font-weight: 600; font-size: 320px; line-height: 1; color: rgba(255,255,255,.08); pointer-events: none; }
-.app-netflix     { background: #7a0a0f; background: linear-gradient(135deg, #b20710 0%, #4a0508 100%); }
-.app-globoplay   { background: #8a1f3d; background: linear-gradient(135deg, #e8335f 0%, #7a1530 100%); }
-.app-crunchyroll { background: #8f4211; background: linear-gradient(135deg, #f47521 0%, #87380a 100%); }
+/* apps */
+.app { width: 336px; height: 256px; margin-right: 32px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; }
+.app:last-child { margin-right: 0; }
+.mark { width: 64px; height: 64px; border-radius: 16px; line-height: 64px; text-align: center; font-size: 34px; font-weight: 600; color: #fff; }
+.mark-netflix { background: #c2121b; }
+.mark-globoplay { background: #e8335f; }
+.mark-crunchyroll { background: #f47521; }
+.app .name { font-size: 36px; font-weight: 600; }
+.app .kind { font-size: 22px; color: var(--muted); margin-top: 6px; }
 
-/* entradas HDMI */
-.input { width: 400px; height: 132px; padding: 26px 30px; background: var(--panel); border-color: var(--line); display: flex; align-items: center; }
-.input.is-focused { border-color: var(--focus); }
-.device-logo { width: 120px; height: 60px; margin-right: 26px; flex-shrink: 0; }
+/* entradas */
+.input { height: 116px; padding: 0 36px 0 28px; margin-bottom: 16px; display: flex; align-items: center; }
+.input:last-child { margin-bottom: 0; }
+.device-logo { width: 104px; height: 52px; margin-right: 28px; flex-shrink: 0; }
 .input.is-empty .device-logo { opacity: .35; }
-.input .name { font-size: 34px; font-weight: 700; }
-.input .kind { font-size: 21px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 194px; }
-.input .kind.is-playing { color: var(--text); }
+.input-text { flex: 1; min-width: 0; }
+.input .kind { font-size: 30px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.input.is-empty .kind { color: var(--muted); font-weight: 400; }
+.input .name { font-family: var(--font-mono); font-size: 18px; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+.status { display: flex; align-items: center; font-size: 21px; color: var(--muted); margin-left: 24px; white-space: nowrap; }
 
-/* rodapé com dicas do controle */
-.hints { margin-top: auto; padding-top: 32px; display: flex; align-items: center; font-size: 24px; color: var(--muted); }
-.hint { display: flex; align-items: center; margin-right: 48px; }
-.key { display: inline-block; min-width: 44px; height: 44px; line-height: 40px; padding: 0 12px; margin-right: 14px; border: 2px solid var(--line); border-radius: 22px; box-sizing: border-box; text-align: center; color: var(--text); font-weight: 700; font-size: 20px; }
+/* dicas do controle */
+.hints { margin-top: auto; display: flex; align-items: center; font-size: 20px; color: var(--muted); }
+.hint { display: flex; align-items: center; margin-right: 40px; }
+.key { display: inline-block; height: 38px; line-height: 34px; padding: 0 12px; margin-right: 12px; border: 2px solid var(--line); border-radius: 10px; box-sizing: border-box; font-family: var(--font-mono); font-size: 16px; color: var(--text); }
 
 /* aviso de abertura */
 #toast {
-  position: absolute; left: 50%; bottom: 150px;
-  transform: translateX(-50%); -webkit-transform: translateX(-50%);
-  background: var(--text); color: var(--ink);
-  font-size: 28px; font-weight: 700; padding: 22px 40px; border-radius: 40px;
+  position: absolute; right: 112px; top: 84px;
+  background: var(--text); color: var(--bg);
+  font-size: 24px; font-weight: 600; padding: 18px 30px; border-radius: 16px;
   opacity: 0; transition: opacity .2s; -webkit-transition: opacity .2s;
   white-space: nowrap;
 }
 #toast.show { opacity: 1; }
-#toast small { font-weight: 600; opacity: .6; margin-left: 10px; font-size: 22px; }
+#toast small { font-family: var(--font-mono); font-weight: 500; opacity: .55; margin-left: 12px; font-size: 18px; }
 
 @media (prefers-reduced-motion: reduce) { .tile, #toast { transition: none; -webkit-transition: none; } }
 </style>
@@ -109,29 +127,42 @@ body {
 <body>
 <div id="viewport">
   <div id="stage">
-    <div class="top">
-      <div>
-        <div class="clock" id="clock">20:00</div>
-        <div class="date" id="date">sábado, 18 de outubro</div>
+    <div class="side">
+      <div class="greeting" id="greeting">Boa noite</div>
+      <div class="clock" id="clock">20:00</div>
+      <div class="date" id="date">sábado, 18 de outubro</div>
+
+      <div class="now is-idle" id="now">
+        <div class="now-head">
+          <span class="label">Agora</span>
+          <span class="now-state"><span class="dot" id="now-dot"></span><span id="now-state">Nada aberto</span></span>
+        </div>
+        <div class="now-body">
+          <div class="cover"><div class="cover-letter" id="now-letter">–</div><img id="now-cover" alt="" hidden></div>
+          <div>
+            <div class="now-title" id="now-title">Nenhum jogo aberto</div>
+            <div class="now-meta" id="now-meta">O jogo do PS5 aparece aqui</div>
+          </div>
+        </div>
       </div>
-      <div class="device"><b>LG 43LM6300</b><br>webOS 4.10</div>
     </div>
 
-    <div class="section">
-      <div class="label">Assistir</div>
-      <div class="row" id="row-apps"></div>
-    </div>
+    <div class="main">
+      <div class="group">
+        <div class="label">Assistir</div>
+        <div class="apps" id="row-apps"></div>
+      </div>
 
-    <div class="section">
-      <div class="label">Entradas</div>
-      <div class="row" id="row-inputs"></div>
-    </div>
+      <div class="group">
+        <div class="label">Entradas</div>
+        <div id="row-inputs"></div>
+      </div>
 
-    <div class="hints">
-      <div class="hint"><span class="key">◀ ▶</span>navegar</div>
-      <div class="hint"><span class="key">▲ ▼</span>trocar de linha</div>
-      <div class="hint"><span class="key">OK</span>abrir</div>
-      <div class="hint" id="hint-sim" hidden><span class="key">1 2 3</span>simular aparelho na entrada</div>
+      <div class="hints">
+        <div class="hint"><span class="key">◀ ▲ ▼ ▶</span>navegar</div>
+        <div class="hint"><span class="key">OK</span>abrir</div>
+        <div class="hint" id="hint-sim" hidden><span class="key">1 2 3</span>simular aparelho</div>
+      </div>
     </div>
 
     <div id="toast"></div>
@@ -148,9 +179,9 @@ body {
     {
       el: 'row-apps',
       items: [
-        { id: 'netflix', name: 'Netflix', kind: 'Filmes e séries', css: 'app app-netflix', glyph: 'N' },
-        { id: 'globoplay', name: 'Globoplay', kind: 'Novelas e TV Globo', css: 'app app-globoplay', glyph: 'g' }, // VERIFICAR
-        { id: 'crunchyroll', name: 'Crunchyroll', kind: 'Anime', css: 'app app-crunchyroll', glyph: 'C' } // VERIFICAR
+        { id: 'netflix', name: 'Netflix', kind: 'Filmes e séries', css: 'app', mark: 'netflix', glyph: 'N' },
+        { id: 'globoplay', name: 'Globoplay', kind: 'Novelas e TV Globo', css: 'app', mark: 'globoplay', glyph: 'g' }, // VERIFICAR
+        { id: 'crunchyroll', name: 'Crunchyroll', kind: 'Anime', css: 'app', mark: 'crunchyroll', glyph: 'C' } // VERIFICAR
       ]
     },
     {
@@ -182,11 +213,14 @@ body {
 
   var onTV = typeof window.PalmServiceBridge !== 'undefined';
   var focus = { row: 0, col: 0 };
+  var lastCol = []; // última coluna focada em cada linha
   var tiles = []; // tiles[row][col] -> elemento
+
+  function $(id) { return document.getElementById(id); }
 
   function build() {
     for (var r = 0; r < ROWS.length; r++) {
-      var rowEl = document.getElementById(ROWS[r].el);
+      var rowEl = $(ROWS[r].el);
       tiles[r] = [];
       for (var c = 0; c < ROWS[r].items.length; c++) {
         var item = ROWS[r].items[c];
@@ -196,8 +230,9 @@ body {
         el.setAttribute('data-row', r);
         el.setAttribute('data-col', c);
         el.innerHTML = item.input
-          ? '<img class="device-logo" alt=""><div><div class="name">' + item.name + '</div><div class="kind"></div></div>'
-          : '<div class="glyph">' + item.glyph + '</div><div class="name">' + item.name + '</div><div class="kind">' + item.kind + '</div>';
+          ? '<img class="device-logo" alt=""><div class="input-text"><div class="kind"></div><div class="name">' + item.name + '</div></div>' +
+            '<div class="status"><span class="dot"></span><span class="status-text"></span></div>'
+          : '<div class="mark mark-' + item.mark + '">' + item.glyph + '</div><div><div class="name">' + item.name + '</div><div class="kind">' + item.kind + '</div></div>';
         el.addEventListener('mouseenter', onHover);
         el.addEventListener('click', onClick);
         rowEl.appendChild(el);
@@ -211,17 +246,35 @@ body {
     if (prev) prev.className = prev.className.replace(' is-focused', '');
     focus.row = row;
     focus.col = col;
-    var el = tiles[row][col];
-    el.className += ' is-focused';
+    lastCol[row] = col;
+    tiles[row][col].className += ' is-focused';
     try { localStorage.setItem('launcher.focus', row + ',' + col); } catch (e) {}
   }
 
-  function move(dRow, dCol) {
-    var row = Math.max(0, Math.min(ROWS.length - 1, focus.row + dRow));
-    var col = focus.col + dCol;
-    if (dRow !== 0) col = Math.round(focus.col * (ROWS[row].items.length - 1) / Math.max(1, ROWS[focus.row].items.length - 1));
-    col = Math.max(0, Math.min(ROWS[row].items.length - 1, col));
-    setFocus(row, col);
+  function center(el) {
+    var r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  // Navegação espacial: vai para o bloco mais próximo na direção da seta.
+  // Ao trocar de linha, volta para o último bloco focado nela.
+  function move(dx, dy) {
+    var from = center(tiles[focus.row][focus.col]);
+    var best = null, bestScore = Infinity;
+    for (var r = 0; r < tiles.length; r++) {
+      for (var c = 0; c < tiles[r].length; c++) {
+        if (r === focus.row && c === focus.col) continue;
+        var to = center(tiles[r][c]);
+        var main = dx ? (to.x - from.x) * dx : (to.y - from.y) * dy;
+        if (main <= 1) continue;
+        var cross = dx ? Math.abs(to.y - from.y) : Math.abs(to.x - from.x);
+        var score = main + cross * 2;
+        if (score < bestScore) { bestScore = score; best = { row: r, col: c }; }
+      }
+    }
+    if (!best) return;
+    if (best.row !== focus.row && lastCol[best.row] !== undefined && dy && ROWS[best.row].el === 'row-apps') best.col = lastCol[best.row];
+    setFocus(best.row, best.col);
   }
 
   function launch(item) {
@@ -254,7 +307,7 @@ body {
     return '';
   }
 
-  var psGame = null; // jogo aberto no PS5, segundo a presença PSN
+  var psGame = null; // jogo aberto no PS5, segundo a presença PSN: { name, icon }
   var lastDevices = [];
 
   // devices: lista no formato do serviço EIM, [{ id: 'HDMI_1', connected: true, deviceName: 'PS5', ... }]
@@ -263,17 +316,38 @@ body {
     var byId = {};
     for (var i = 0; i < devices.length; i++) byId[devices[i].id] = devices[i];
     var row = ROWS[1].items;
+    var psPort = null;
     for (var c = 0; c < row.length; c++) {
       var dev = byId[row[c].input] || { id: row[c].input, connected: false };
       var key = dev.connected ? identify(dev) : null;
+      var playing = key === 'playstation' && psGame;
+      if (key === 'playstation' && !psPort) psPort = row[c].name;
       var el = tiles[1][c];
       el.querySelector('.device-logo').src = logoUrl(key);
-      var playing = key === 'playstation' && psGame;
-      var kind = el.querySelector('.kind');
-      kind.textContent = playing ? psGame : !dev.connected ? 'Nada conectado' : key ? deviceLabel(key) : 'Aparelho conectado';
-      kind.className = playing ? 'kind is-playing' : 'kind';
+      el.querySelector('.kind').textContent = playing ? psGame.name : !dev.connected ? 'Nada conectado' : key ? deviceLabel(key) : 'Aparelho conectado';
+      el.querySelector('.status-text').textContent = playing ? 'Jogando' : dev.connected ? 'Conectado' : 'Vazio';
+      el.querySelector('.dot').className = dev.connected ? 'dot is-on' : 'dot';
       var cls = el.className.replace(' is-empty', '');
       el.className = dev.connected ? cls : cls + ' is-empty';
+    }
+    renderNow(psPort);
+  }
+
+  // Painel "Agora": o jogo aberto no PS5, quando houver.
+  function renderNow(psPort) {
+    var active = psGame && psPort;
+    $('now').className = active ? 'now' : 'now is-idle';
+    $('now-dot').className = active ? 'dot is-on' : 'dot';
+    $('now-state').textContent = active ? 'Jogando' : 'Nada aberto';
+    $('now-title').textContent = active ? psGame.name : 'Nenhum jogo aberto';
+    $('now-meta').textContent = active ? 'PlayStation 5 · ' + psPort : 'O jogo do PS5 aparece aqui';
+    $('now-letter').textContent = active ? psGame.name.charAt(0) : '–';
+    var img = $('now-cover');
+    if (active && psGame.icon) {
+      if (img.getAttribute('src') !== psGame.icon) img.src = psGame.icon;
+      img.hidden = false;
+    } else {
+      img.hidden = true;
     }
   }
 
@@ -298,8 +372,8 @@ body {
       var res = {};
       try { res = JSON.parse(msg); } catch (e) {}
       if (!res.returnValue) console.log('PSN: ' + msg);
-      var game = res.returnValue && res.game ? res.game.name : null;
-      if (game !== psGame) { psGame = game; renderInputs(lastDevices); }
+      var game = res.returnValue && res.game ? res.game : null;
+      if ((game && game.name) !== (psGame && psGame.name)) { psGame = game; renderInputs(lastDevices); }
     };
     presenceBridge.call('luna://com.pedrorenan.launcher.service/presence', '{}');
   }
@@ -324,7 +398,7 @@ body {
 
   var toastTimer;
   function toast(text, detail) {
-    var el = document.getElementById('toast');
+    var el = $('toast');
     el.innerHTML = text + (detail ? '<small>' + detail + '</small>' : '');
     el.className = 'show';
     clearTimeout(toastTimer);
@@ -343,10 +417,10 @@ body {
 
   document.addEventListener('keydown', function (e) {
     switch (e.keyCode) {
-      case KEY.LEFT: move(0, -1); break;
-      case KEY.RIGHT: move(0, 1); break;
-      case KEY.UP: move(-1, 0); break;
-      case KEY.DOWN: move(1, 0); break;
+      case KEY.LEFT: move(-1, 0); break;
+      case KEY.RIGHT: move(1, 0); break;
+      case KEY.UP: move(0, -1); break;
+      case KEY.DOWN: move(0, 1); break;
       case KEY.ENTER: launch(ROWS[focus.row].items[focus.col]); break;
       case KEY.BACK: break; // o launcher é a raiz: Voltar não faz nada
       case 49: case 50: case 51:
@@ -362,20 +436,22 @@ body {
 
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
   function tick() {
-    var d = new Date();
-    document.getElementById('clock').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
-    document.getElementById('date').textContent = DAYS[d.getDay()] + ', ' + d.getDate() + ' de ' + MONTHS[d.getMonth()];
+    var d = new Date(), h = d.getHours();
+    $('clock').textContent = pad(h) + ':' + pad(d.getMinutes());
+    $('date').textContent = DAYS[d.getDay()] + ', ' + d.getDate() + ' de ' + MONTHS[d.getMonth()];
+    $('greeting').textContent = h >= 5 && h < 12 ? 'Bom dia' : h >= 12 && h < 18 ? 'Boa tarde' : 'Boa noite';
   }
 
   function fit() {
-    var vp = document.getElementById('viewport');
+    var vp = $('viewport');
     var w = vp.clientWidth, h = vp.clientHeight;
     var s = Math.min(w / 1920, h / 1080);
-    var stage = document.getElementById('stage');
     var t = 'translate(' + (w - 1920 * s) / 2 + 'px,' + (h - 1080 * s) / 2 + 'px) scale(' + s + ')';
-    stage.style.transform = t;
-    stage.style.webkitTransform = t;
+    $('stage').style.transform = t;
+    $('stage').style.webkitTransform = t;
   }
+
+  $('now-cover').addEventListener('error', function () { this.hidden = true; });
 
   build();
   var saved = null;
@@ -389,9 +465,9 @@ body {
     setInterval(pollPresence, 60000);
     document.addEventListener('visibilitychange', pollPresence);
   } else {
-    psGame = 'Astro Bot'; // exemplo para a prévia
+    psGame = { name: 'Astro Bot', icon: null }; // exemplo para a prévia
     renderSim();
-    document.getElementById('hint-sim').hidden = false;
+    $('hint-sim').hidden = false;
   }
   tick();
   setInterval(tick, 20000);
