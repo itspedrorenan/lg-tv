@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<title>Launcher da Sala</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Manrope:wght@400;600;700&display=swap">
+<style>
+/* Layout: palco fixo 1920x1080 escalado para caber na tela; relógio no topo, linha de streamings, linha de entradas, dicas do controle no rodapé.
+   Alvo: Chromium 53 do webOS 4 — sem CSS grid, sem flex gap, só transform/opacity animados. */
+:root {
+  --ink: #0b0e14;        /* fundo */
+  --panel: #161a23;      /* superfície dos blocos de entrada */
+  --line: #262c39;       /* bordas discretas */
+  --text: #eef1f6;
+  --muted: #8a93a5;
+  --focus: #ffc65c;      /* anel de foco, âmbar */
+  --font-display: "Unbounded", "Arial Black", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Manrope", "LG Smart UI", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-body);
+  overflow: hidden;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
+#viewport { position: relative; width: 100%; height: 100%; overflow: hidden; }
+#stage {
+  position: absolute; left: 0; top: 0;
+  width: 1920px; height: 1080px;
+  transform-origin: 0 0;
+  padding: 88px 120px 72px;
+  box-sizing: border-box;
+  display: flex; flex-direction: column;
+}
+
+/* topo */
+.top { display: flex; align-items: flex-end; justify-content: space-between; }
+.clock { font-family: var(--font-display); font-weight: 400; font-size: 148px; line-height: 1; letter-spacing: -4px; font-variant-numeric: tabular-nums; }
+.date { margin-top: 18px; font-size: 34px; color: var(--muted); font-weight: 600; }
+.device { font-size: 24px; color: var(--muted); text-align: right; line-height: 1.5; }
+.device b { color: var(--text); font-weight: 600; }
+
+/* seções */
+.section { margin-top: 72px; }
+.section + .section { margin-top: 56px; }
+.label { font-size: 22px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin: 0 0 22px 4px; }
+.row { display: flex; }
+
+/* bloco genérico */
+.tile {
+  position: relative;
+  box-sizing: border-box;
+  border: 5px solid transparent;
+  border-radius: 22px;
+  margin-right: 36px;
+  cursor: pointer;
+  opacity: .62;
+  transition: transform .16s ease-out, opacity .16s ease-out;
+  -webkit-transition: -webkit-transform .16s ease-out, opacity .16s ease-out;
+  outline: none;
+}
+.tile:last-child { margin-right: 0; }
+.tile.is-focused { opacity: 1; border-color: var(--focus); transform: scale(1.05); -webkit-transform: scale(1.05); }
+
+/* streamings */
+.app { width: 536px; height: 330px; padding: 40px 44px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+.app .name { font-family: var(--font-display); font-weight: 600; font-size: 60px; line-height: 1.05; letter-spacing: -1px; color: #fff; }
+.app .kind { font-size: 26px; font-weight: 600; color: rgba(255,255,255,.78); }
+.app .glyph { position: absolute; right: -30px; bottom: -70px; font-family: var(--font-display); font-weight: 600; font-size: 320px; line-height: 1; color: rgba(255,255,255,.08); pointer-events: none; }
+.app-netflix     { background: #7a0a0f; background: linear-gradient(135deg, #b20710 0%, #4a0508 100%); }
+.app-globoplay   { background: #8a1f3d; background: linear-gradient(135deg, #e8335f 0%, #7a1530 100%); }
+.app-crunchyroll { background: #8f4211; background: linear-gradient(135deg, #f47521 0%, #87380a 100%); }
+
+/* entradas HDMI */
+.input { width: 300px; height: 132px; padding: 26px 30px; background: var(--panel); border-color: var(--line); display: flex; align-items: center; }
+.input.is-focused { border-color: var(--focus); }
+.port { width: 64px; height: 40px; margin-right: 24px; border: 3px solid var(--muted); border-radius: 6px 6px 16px 16px; box-sizing: border-box; flex-shrink: 0; }
+.input.is-focused .port { border-color: var(--focus); }
+.input .name { font-size: 34px; font-weight: 700; }
+.input .kind { font-size: 21px; color: var(--muted); margin-top: 2px; }
+
+/* rodapé com dicas do controle */
+.hints { margin-top: auto; display: flex; align-items: center; font-size: 24px; color: var(--muted); }
+.hint { display: flex; align-items: center; margin-right: 48px; }
+.key { display: inline-block; min-width: 44px; height: 44px; line-height: 40px; padding: 0 12px; margin-right: 14px; border: 2px solid var(--line); border-radius: 22px; box-sizing: border-box; text-align: center; color: var(--text); font-weight: 700; font-size: 20px; }
+
+/* aviso de abertura */
+#toast {
+  position: absolute; left: 50%; bottom: 150px;
+  transform: translateX(-50%); -webkit-transform: translateX(-50%);
+  background: var(--text); color: var(--ink);
+  font-size: 28px; font-weight: 700; padding: 22px 40px; border-radius: 40px;
+  opacity: 0; transition: opacity .2s; -webkit-transition: opacity .2s;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+#toast small { font-weight: 600; opacity: .6; margin-left: 10px; font-size: 22px; }
+
+@media (prefers-reduced-motion: reduce) { .tile, #toast { transition: none; -webkit-transition: none; } }
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+    <div class="top">
+      <div>
+        <div class="clock" id="clock">20:00</div>
+        <div class="date" id="date">sábado, 18 de outubro</div>
+      </div>
+      <div class="device"><b>LG 43LM6300</b><br>webOS 4.10</div>
+    </div>
+
+    <div class="section">
+      <div class="label">Assistir</div>
+      <div class="row" id="row-apps"></div>
+    </div>
+
+    <div class="section">
+      <div class="label">Entradas</div>
+      <div class="row" id="row-inputs"></div>
+    </div>
+
+    <div class="hints">
+      <div class="hint"><span class="key">◀ ▶</span>navegar</div>
+      <div class="hint"><span class="key">▲ ▼</span>trocar de linha</div>
+      <div class="hint"><span class="key">OK</span>abrir</div>
+    </div>
+
+    <div id="toast"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // IDs de app no webOS. Os marcados VERIFICAR devem ser confirmados na TV com:
+  //   luna-send -n 1 -f luna://com.webos.applicationManager/listApps '{}' | grep '"id"'
+  var ROWS = [
+    {
+      el: 'row-apps',
+      items: [
+        { id: 'netflix', name: 'Netflix', kind: 'Filmes e séries', css: 'app app-netflix', glyph: 'N' },
+        { id: 'globoplay', name: 'Globoplay', kind: 'Novelas e TV Globo', css: 'app app-globoplay', glyph: 'g' }, // VERIFICAR
+        { id: 'crunchyroll', name: 'Crunchyroll', kind: 'Anime', css: 'app app-crunchyroll', glyph: 'C' } // VERIFICAR
+      ]
+    },
+    {
+      el: 'row-inputs',
+      items: [
+        { id: 'com.webos.app.hdmi1', name: 'HDMI 1', kind: 'Entrada', css: 'input', port: true },
+        { id: 'com.webos.app.hdmi2', name: 'HDMI 2', kind: 'Entrada', css: 'input', port: true },
+        { id: 'com.webos.app.hdmi3', name: 'HDMI 3', kind: 'Entrada', css: 'input', port: true }
+      ]
+    }
+  ];
+
+  var KEY = { LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, ENTER: 13, BACK: 461 };
+  var MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  var DAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+
+  var onTV = typeof window.PalmServiceBridge !== 'undefined';
+  var focus = { row: 0, col: 0 };
+  var tiles = []; // tiles[row][col] -> elemento
+
+  function build() {
+    for (var r = 0; r < ROWS.length; r++) {
+      var rowEl = document.getElementById(ROWS[r].el);
+      tiles[r] = [];
+      for (var c = 0; c < ROWS[r].items.length; c++) {
+        var item = ROWS[r].items[c];
+        var el = document.createElement('div');
+        el.className = 'tile ' + item.css;
+        el.setAttribute('tabindex', '-1');
+        el.setAttribute('data-row', r);
+        el.setAttribute('data-col', c);
+        el.innerHTML = item.port
+          ? '<div class="port"></div><div><div class="name">' + item.name + '</div><div class="kind">' + item.kind + '</div></div>'
+          : '<div class="glyph">' + item.glyph + '</div><div class="name">' + item.name + '</div><div class="kind">' + item.kind + '</div>';
+        el.addEventListener('mouseenter', onHover);
+        el.addEventListener('click', onClick);
+        rowEl.appendChild(el);
+        tiles[r][c] = el;
+      }
+    }
+  }
+
+  function setFocus(row, col) {
+    var prev = tiles[focus.row] && tiles[focus.row][focus.col];
+    if (prev) prev.className = prev.className.replace(' is-focused', '');
+    focus.row = row;
+    focus.col = col;
+    var el = tiles[row][col];
+    el.className += ' is-focused';
+    try { localStorage.setItem('launcher.focus', row + ',' + col); } catch (e) {}
+  }
+
+  function move(dRow, dCol) {
+    var row = Math.max(0, Math.min(ROWS.length - 1, focus.row + dRow));
+    var col = focus.col + dCol;
+    if (dRow !== 0) col = Math.round(focus.col * (ROWS[row].items.length - 1) / Math.max(1, ROWS[focus.row].items.length - 1));
+    col = Math.max(0, Math.min(ROWS[row].items.length - 1, col));
+    setFocus(row, col);
+  }
+
+  function launch(item) {
+    if (onTV) {
+      var bridge = new window.PalmServiceBridge();
+      bridge.onservicecallback = function (msg) {
+        var res = {};
+        try { res = JSON.parse(msg); } catch (e) {}
+        if (!res.returnValue) toast('Não abriu ' + item.name, res.errorText || item.id);
+      };
+      bridge.call('luna://com.webos.applicationManager/launch', JSON.stringify({ id: item.id }));
+      toast('Abrindo ' + item.name);
+    } else {
+      toast('Na TV, abriria ' + item.name, item.id);
+    }
+  }
+
+  var toastTimer;
+  function toast(text, detail) {
+    var el = document.getElementById('toast');
+    el.innerHTML = text + (detail ? '<small>' + detail + '</small>' : '');
+    el.className = 'show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.className = ''; }, 2200);
+  }
+
+  function onHover(e) {
+    var el = e.currentTarget;
+    setFocus(+el.getAttribute('data-row'), +el.getAttribute('data-col'));
+  }
+
+  function onClick(e) {
+    onHover(e);
+    launch(ROWS[focus.row].items[focus.col]);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    switch (e.keyCode) {
+      case KEY.LEFT: move(0, -1); break;
+      case KEY.RIGHT: move(0, 1); break;
+      case KEY.UP: move(-1, 0); break;
+      case KEY.DOWN: move(1, 0); break;
+      case KEY.ENTER: launch(ROWS[focus.row].items[focus.col]); break;
+      case KEY.BACK: break; // o launcher é a raiz: Voltar não faz nada
+      default: return;
+    }
+    e.preventDefault();
+  });
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function tick() {
+    var d = new Date();
+    document.getElementById('clock').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    document.getElementById('date').textContent = DAYS[d.getDay()] + ', ' + d.getDate() + ' de ' + MONTHS[d.getMonth()];
+  }
+
+  function fit() {
+    var vp = document.getElementById('viewport');
+    var w = vp.clientWidth, h = vp.clientHeight;
+    var s = Math.min(w / 1920, h / 1080);
+    var stage = document.getElementById('stage');
+    var t = 'translate(' + (w - 1920 * s) / 2 + 'px,' + (h - 1080 * s) / 2 + 'px) scale(' + s + ')';
+    stage.style.transform = t;
+    stage.style.webkitTransform = t;
+  }
+
+  build();
+  var saved = null;
+  try { saved = (localStorage.getItem('launcher.focus') || '').split(','); } catch (e) {}
+  if (saved && tiles[+saved[0]] && tiles[+saved[0]][+saved[1]]) setFocus(+saved[0], +saved[1]);
+  else setFocus(0, 0);
+  tick();
+  setInterval(tick, 20000);
+  fit();
+  window.addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>

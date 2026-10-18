@@ -1,0 +1,12 @@
+{
+  "id": "com.pedrorenan.launcher",
+  "version": "0.1.0",
+  "vendor": "Pedro Renan",
+  "type": "web",
+  "main": "index.html",
+  "title": "Launcher",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true
+}
