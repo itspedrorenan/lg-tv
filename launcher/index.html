@@ -68,8 +68,14 @@ body {
 /* coluna direita */
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .main .label { margin: 0 0 20px 4px; }
-.group + .group { margin-top: 52px; }
-.apps { display: flex; }
+.group + .group { margin-top: 28px; }
+.inputs-group { flex: 1; min-height: 0; display: flex; flex-direction: column; } /* só as entradas rolam */
+.apps { display: flex; flex-wrap: wrap; }
+
+/* área que rola quando o conteúdo passa da altura da tela; as margens negativas
+   deixam espaço para o anel de foco ampliado não ser cortado nas bordas */
+.scroll { flex: 1; min-height: 0; overflow: hidden; position: relative; margin: -12px -24px 0; padding: 12px 24px 0; }
+.scroll-inner { position: relative; transition: transform .2s ease-out; -webkit-transition: -webkit-transform .2s ease-out; }
 
 .tile {
   position: relative;
@@ -85,30 +91,56 @@ body {
 .tile.is-focused { background: var(--panel-hi); border-color: var(--focus); transform: scale(1.03); -webkit-transform: scale(1.03); }
 
 /* apps */
-.app { width: 336px; height: 256px; margin-right: 32px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; }
-.app:last-child { margin-right: 0; }
-.mark { width: 64px; height: 64px; border-radius: 16px; line-height: 64px; text-align: center; font-size: 34px; font-weight: 600; color: #fff; }
+.app { width: 250px; height: 200px; margin: 0 24px 24px 0; padding: 26px 28px; display: flex; flex-direction: column; justify-content: space-between; }
+.app:nth-child(4n) { margin-right: 0; }
+.mark { position: relative; width: 64px; height: 64px; border-radius: 16px; overflow: hidden; line-height: 64px; text-align: center; font-size: 34px; font-weight: 600; color: #fff; background: #3a4048; }
+.mark img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 .mark-netflix { background: #c2121b; }
 .mark-globoplay { background: #e8335f; }
 .mark-crunchyroll { background: #f47521; }
-.app .name { font-size: 36px; font-weight: 600; }
-.app .kind { font-size: 22px; color: var(--muted); margin-top: 6px; }
+.mark-store { background: #3a4048; }
+.app .name { font-size: 30px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app .kind { font-size: 20px; color: var(--muted); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* entradas */
-.input { height: 116px; padding: 0 36px 0 28px; margin-bottom: 16px; display: flex; align-items: center; }
+.input { height: 92px; padding: 0 36px 0 28px; margin-bottom: 12px; display: flex; align-items: center; }
 .input:last-child { margin-bottom: 0; }
 .device-logo { width: 104px; height: 52px; margin-right: 28px; flex-shrink: 0; }
 .input.is-empty .device-logo { opacity: .35; }
 .input-text { flex: 1; min-width: 0; }
-.input .kind { font-size: 30px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.input .kind { font-size: 28px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .input.is-empty .kind { color: var(--muted); font-weight: 400; }
 .input .name { font-family: var(--font-mono); font-size: 18px; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
 .status { display: flex; align-items: center; font-size: 21px; color: var(--muted); margin-left: 24px; white-space: nowrap; }
 
 /* dicas do controle */
-.hints { margin-top: auto; display: flex; align-items: center; font-size: 20px; color: var(--muted); }
+.hints { padding-top: 20px; display: flex; align-items: center; font-size: 20px; color: var(--muted); }
 .hint { display: flex; align-items: center; margin-right: 40px; }
+.shortcut { margin-left: auto; height: 60px; padding: 0 24px 0 18px; display: flex; align-items: center; font-size: 22px; font-weight: 500; border-radius: 18px; }
+.shortcut svg { width: 30px; height: 30px; margin-right: 12px; fill: var(--muted); }
+.shortcut.is-focused svg { fill: var(--text); }
 .key { display: inline-block; height: 38px; line-height: 34px; padding: 0 12px; margin-right: 12px; border: 2px solid var(--line); border-radius: 10px; box-sizing: border-box; font-family: var(--font-mono); font-size: 16px; color: var(--text); }
+
+/* configurações */
+.set-head { display: flex; align-items: center; margin-bottom: 8px; }
+.set-back { width: 64px; height: 64px; margin-right: 20px; display: flex; align-items: center; justify-content: center; border-radius: 18px; flex-shrink: 0; }
+.set-back svg { width: 34px; height: 34px; fill: var(--muted); }
+.set-back.is-focused { transform: scale(1.06); -webkit-transform: scale(1.06); }
+.set-back.is-focused svg { fill: var(--text); }
+.set-title { font-size: 44px; font-weight: 600; }
+.set-sub { font-size: 21px; color: var(--muted); margin-left: 20px; }
+.set-group { margin: 26px 0 12px 4px; }
+.setting { height: 66px; padding: 0 24px 0 28px; margin-bottom: 8px; display: flex; align-items: center; border-radius: 18px; }
+.setting.is-focused { transform: scale(1.01); -webkit-transform: scale(1.01); }
+.set-name { flex: 1; font-size: 26px; }
+.set-value { display: flex; align-items: center; font-size: 24px; color: var(--muted); }
+.setting.is-focused .set-value { color: var(--text); }
+.arrow { font-family: var(--font-mono); font-size: 22px; margin: 0 14px; opacity: 0; }
+.setting.is-focused .arrow { opacity: .55; }
+.setting.is-link .arrow { visibility: hidden; }
+.bar { width: 180px; height: 8px; border-radius: 4px; background: var(--line); margin-right: 18px; position: relative; overflow: hidden; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--muted); }
+.setting.is-focused .bar i { background: var(--text); }
 
 /* aviso de abertura */
 #toast {
@@ -128,7 +160,7 @@ body {
 <div id="viewport">
   <div id="stage">
     <div class="side">
-      <div class="greeting" id="greeting">Boa noite</div>
+      <div class="greeting" id="greeting">Boa noite, Pedro</div>
       <div class="clock" id="clock">20:00</div>
       <div class="date" id="date">sábado, 18 de outubro</div>
 
@@ -147,21 +179,32 @@ body {
       </div>
     </div>
 
-    <div class="main">
+    <div class="main" id="home">
       <div class="group">
         <div class="label">Assistir</div>
         <div class="apps" id="row-apps"></div>
       </div>
 
-      <div class="group">
+      <div class="group inputs-group">
         <div class="label">Entradas</div>
-        <div id="row-inputs"></div>
+        <div class="scroll" id="inputs-box"><div class="scroll-inner" id="row-inputs"></div></div>
       </div>
 
       <div class="hints">
         <div class="hint"><span class="key">◀ ▲ ▼ ▶</span>navegar</div>
         <div class="hint"><span class="key">OK</span>abrir</div>
-        <div class="hint" id="hint-sim" hidden><span class="key">1 2 3</span>simular aparelho</div>
+        <div class="hint" id="hint-sim" hidden><span class="key">1–5</span>simular aparelho</div>
+        <div id="row-system"></div>
+      </div>
+    </div>
+
+    <div class="main" id="settings" hidden>
+      <div class="set-head"><div class="tile set-back" id="set-back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></div><span class="set-title">Configurações</span><span class="set-sub" id="set-sub"></span></div>
+      <div class="scroll" id="set-box"><div class="scroll-inner" id="set-list"></div></div>
+      <div class="hints">
+        <div class="hint"><span class="key">▲ ▼</span>navegar</div>
+        <div class="hint"><span class="key">◀ ▶</span>mudar</div>
+        <div class="hint"><span class="key">VOLTAR</span>sair</div>
       </div>
     </div>
 
@@ -173,26 +216,53 @@ body {
 (function () {
   'use strict';
 
-  // IDs de app no webOS. Os marcados VERIFICAR devem ser confirmados na TV com:
-  //   luna-send -n 1 -f luna://com.webos.applicationManager/listApps '{}' | grep '"id"'
   var ROWS = [
     {
       el: 'row-apps',
-      items: [
-        { id: 'netflix', name: 'Netflix', kind: 'Filmes e séries', css: 'app', mark: 'netflix', glyph: 'N' },
-        { id: 'globoplay', name: 'Globoplay', kind: 'Novelas e TV Globo', css: 'app', mark: 'globoplay', glyph: 'g' }, // VERIFICAR
-        { id: 'crunchyroll', name: 'Crunchyroll', kind: 'Anime', css: 'app', mark: 'crunchyroll', glyph: 'C' } // VERIFICAR
-      ]
+      items: [] // preenchida por setApps com os apps instalados
     },
     {
       el: 'row-inputs',
       items: [
         { id: 'com.webos.app.hdmi1', name: 'HDMI 1', css: 'input', input: 'HDMI_1' },
         { id: 'com.webos.app.hdmi2', name: 'HDMI 2', css: 'input', input: 'HDMI_2' },
-        { id: 'com.webos.app.hdmi3', name: 'HDMI 3', css: 'input', input: 'HDMI_3' }
+        { id: 'com.webos.app.hdmi3', name: 'HDMI 3', css: 'input', input: 'HDMI_3' },
+        { id: 'com.webos.app.photovideo', name: 'USB 1', css: 'input', usb: 1 },
+        { id: 'com.webos.app.photovideo', name: 'USB 2', css: 'input', usb: 2 }
+      ]
+    },
+    {
+      el: 'row-system',
+      items: [
+        { id: 'settings', name: 'Configurações', css: 'shortcut', action: 'settings' }
       ]
     }
   ];
+
+  var GEAR = '<svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.47.47 0 0 0-.47.41l-.36 2.54a7.4 7.4 0 0 0-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7 7 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>';
+
+  // --- apps ---
+  // Cada app instalado pela loja da LG ou pelo Homebrew vira um card, até MAX_CARDS contando
+  // a Loja, que fica sempre por último. Os de KNOWN vêm primeiro, na ordem da lista;
+  // os outros seguem pela data de instalação. Dá para esconder qualquer um em Configurações.
+  var MAX_CARDS = 8;
+  var USER_APP_DIR = /^\/media\/(cryptofs|developer)\/apps\//;
+  var STORE = { id: 'org.webosbrew.hbchannel', name: 'Loja', kind: 'Homebrew Channel', css: 'app', mark: 'store', glyph: '+' };
+  var NOT_CARDS = { 'com.pedrorenan.launcher': true, 'org.webosbrew.hbchannel': true };
+  // Visual próprio para os apps de sempre; testado contra "id título" do app.
+  var KNOWN = [
+    { match: /^netflix /, kind: 'Filmes e séries', mark: 'netflix', glyph: 'N' },
+    { match: /globoplay/i, kind: 'Novelas e TV Globo', mark: 'globoplay', glyph: 'g' },
+    { match: /crunchyroll/i, kind: 'Anime', mark: 'crunchyroll', glyph: 'C' },
+    { match: /prime video|^amazon /i, kind: 'Filmes e séries' },
+    { match: /youtube/i, kind: 'Vídeos' }
+  ];
+  var PREFERRED = 3; // os 3 primeiros de KNOWN abrem a lista nessa ordem
+
+  var hiddenApps = {}; // { appId: true } escondidos em Configurações
+  try { hiddenApps = JSON.parse(localStorage.getItem('launcher.hiddenApps')) || {}; } catch (e) {}
+  var userApps = []; // todos os apps instalados que podem virar card, já ordenados
+  var rawApps = null; // última resposta do listApps
 
   // Aparelhos reconhecidos nas entradas. O teste roda sobre os textos que a TV informa
   // da porta (nome CEC, rótulo, fabricante), ex.: "PS5", "Xbox Series X", "NintendoSwitch".
@@ -202,11 +272,14 @@ body {
     { key: 'nintendo', label: 'Nintendo Switch', match: /nintendo|switch/i }
   ];
 
-  // Use se a TV não identificar sozinha um aparelho, ex.: { HDMI_2: 'xbox' }
+  // Aparelho escolhido à mão em Configurações, para quando a TV não identifica sozinha.
+  // Ex.: { HDMI_2: 'xbox' }; 'other' = aparelho sem logo conhecido.
   var OVERRIDES = {};
+  try { OVERRIDES = JSON.parse(localStorage.getItem('launcher.devices')) || {}; } catch (e) {}
 
   function logoUrl(key) { return 'img/devices/' + (key || 'default') + '.svg'; }
 
+  var NAME = 'Pedro'; // nome na saudação
   var KEY = { LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, ENTER: 13, BACK: 461 };
   var MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   var DAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
@@ -217,10 +290,12 @@ body {
   var tiles = []; // tiles[row][col] -> elemento
 
   function $(id) { return document.getElementById(id); }
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 
   function build() {
     for (var r = 0; r < ROWS.length; r++) {
       var rowEl = $(ROWS[r].el);
+      rowEl.innerHTML = '';
       tiles[r] = [];
       for (var c = 0; c < ROWS[r].items.length; c++) {
         var item = ROWS[r].items[c];
@@ -229,10 +304,15 @@ body {
         el.setAttribute('tabindex', '-1');
         el.setAttribute('data-row', r);
         el.setAttribute('data-col', c);
-        el.innerHTML = item.input
+        el.innerHTML = item.action ? GEAR + item.name
+          : item.input || item.usb
           ? '<img class="device-logo" alt=""><div class="input-text"><div class="kind"></div><div class="name">' + item.name + '</div></div>' +
             '<div class="status"><span class="dot"></span><span class="status-text"></span></div>'
-          : '<div class="mark mark-' + item.mark + '">' + item.glyph + '</div><div><div class="name">' + item.name + '</div><div class="kind">' + item.kind + '</div></div>';
+          : '<div class="mark' + (item.mark ? ' mark-' + item.mark : '') + '"' + (item.color ? ' style="background:' + item.color + '"' : '') + '>' + esc(item.glyph) +
+            (item.icon ? '<img alt="" src="' + esc(item.icon) + '">' : '') + '</div>' +
+            '<div><div class="name">' + esc(item.name) + '</div><div class="kind">' + esc(item.kind) + '</div></div>';
+        var icon = el.querySelector('.mark img');
+        if (icon) icon.addEventListener('error', function () { this.parentNode.removeChild(this); });
         el.addEventListener('mouseenter', onHover);
         el.addEventListener('click', onClick);
         rowEl.appendChild(el);
@@ -248,7 +328,26 @@ body {
     focus.col = col;
     lastCol[row] = col;
     tiles[row][col].className += ' is-focused';
+    if (ROWS[row].el === 'row-inputs') scrollTo($('inputs-box'), $('row-inputs'), tiles[row][col]);
     try { localStorage.setItem('launcher.focus', row + ',' + col); } catch (e) {}
+  }
+
+  // Rola a área para deixar el visível, com uma folga para o anel de foco.
+  function scrollTo(box, inner, el) {
+    var top = 0;
+    for (var n = el; n && n !== inner; n = n.offsetParent) top += n.offsetTop;
+    var h = box.clientHeight, pad = 40, y = +inner.getAttribute('data-y') || 0;
+    if (top - pad < y) y = top - pad;
+    if (top + el.offsetHeight + pad > y + h) y = top + el.offsetHeight + pad - h;
+    y = Math.max(0, Math.min(y, inner.offsetHeight - h + 12));
+    inner.setAttribute('data-y', y);
+    inner.style.transform = inner.style.webkitTransform = 'translateY(' + -y + 'px)';
+  }
+
+  // Foca o bloco salvo (ou o primeiro que existir), já que linhas podem ficar vazias.
+  function restoreFocus(row, col) {
+    if (tiles[row] && tiles[row].length) return setFocus(row, Math.min(col, tiles[row].length - 1));
+    for (var r = 0; r < tiles.length; r++) if (tiles[r].length) return setFocus(r, 0);
   }
 
   function center(el) {
@@ -273,11 +372,13 @@ body {
       }
     }
     if (!best) return;
-    if (best.row !== focus.row && lastCol[best.row] !== undefined && dy && ROWS[best.row].el === 'row-apps') best.col = lastCol[best.row];
+    if (best.row !== focus.row && lastCol[best.row] !== undefined && dy && ROWS[best.row].el === 'row-apps' && tiles[best.row].length <= 4) best.col = lastCol[best.row];
     setFocus(best.row, best.col);
   }
 
   function launch(item) {
+    if (item.action === 'settings') return openSettings();
+    if (item.usb && !usbAt(item.usb)) return toast('Nada conectado na ' + item.name);
     if (onTV) {
       var bridge = new window.PalmServiceBridge();
       bridge.onservicecallback = function (msg) {
@@ -292,10 +393,78 @@ body {
     }
   }
 
+  function knownFor(app) {
+    var text = app.id + ' ' + (app.title || '');
+    for (var i = 0; i < KNOWN.length; i++) if (KNOWN[i].match.test(text)) return i;
+    return -1;
+  }
+
+  function iconPath(app) {
+    var file = app.largeIcon || app.icon;
+    if (!file) return '';
+    return file.charAt(0) === '/' ? file : app.folderPath + '/' + file;
+  }
+
+  // apps: lista do listApps. Monta os cards e guarda a lista para a próxima abertura.
+  function setApps(apps) {
+    rawApps = apps;
+    userApps = [];
+    var hasStore = false;
+    for (var i = 0; i < apps.length; i++) {
+      var a = apps[i];
+      if (a.id === STORE.id) hasStore = true;
+      if (NOT_CARDS[a.id] || a.visible === false || !USER_APP_DIR.test(a.folderPath || '')) continue;
+      var k = knownFor(a), known = KNOWN[k] || {};
+      userApps.push({
+        id: a.id, name: a.title || a.id, kind: known.kind || 'App', css: 'app',
+        mark: known.mark, glyph: known.glyph || (a.title || a.id).charAt(0).toUpperCase(),
+        icon: known.mark ? '' : iconPath(a), color: known.mark ? '' : a.iconColor,
+        rank: k >= 0 && k < PREFERRED ? k : PREFERRED, installTime: a.installTime || 0
+      });
+    }
+    userApps.sort(function (x, y) { return x.rank - y.rank || x.installTime - y.installTime; });
+    var cards = [];
+    for (var j = 0; j < userApps.length && cards.length < MAX_CARDS - 1; j++) if (!hiddenApps[userApps[j].id]) cards.push(userApps[j]);
+    if (hasStore) cards.push(STORE);
+    ROWS[0].items = cards;
+    var row = focus.row, col = focus.col;
+    lastCol = [];
+    build();
+    renderInputs(lastDevices);
+    renderUsb(lastUsb);
+    restoreFocus(row, col);
+    if (settingsOpen) { buildSettings(); renderSettings(); }
+  }
+
+  // Lê os apps instalados. Roda ao abrir e sempre que o launcher volta para a frente,
+  // para que um app recém-instalado já apareça.
+  function loadApps() {
+    lunaCall('luna://com.webos.applicationManager/listApps', {}, function (res) {
+      if (!res.returnValue || !res.apps) { console.log('listApps: ' + JSON.stringify(res)); return; }
+      var slim = [];
+      for (var i = 0; i < res.apps.length; i++) {
+        var a = res.apps[i];
+        slim.push({ id: a.id, title: a.title, visible: a.visible, folderPath: a.folderPath, icon: a.icon,
+          largeIcon: a.largeIcon, iconColor: a.iconColor, installTime: a.installTime });
+      }
+      try { localStorage.setItem('launcher.apps', JSON.stringify(slim)); } catch (e) {}
+      setApps(slim);
+    });
+  }
+
+  // Prévia: o que a TV tinha instalado em out/2026, sem os ícones.
+  var SIM_APPS = [
+    { id: 'netflix', title: 'Netflix', folderPath: '/media/cryptofs/apps/usr/palm/applications/netflix', installTime: 1774205429 },
+    { id: 'globoplaywebos', title: 'Globoplay', folderPath: '/media/cryptofs/apps/usr/palm/applications/globoplaywebos', installTime: 1776622964 },
+    { id: 'amazon', title: 'Prime Video', folderPath: '/media/cryptofs/apps/usr/palm/applications/amazon', installTime: 1756762142, iconColor: '#0578ff' },
+    { id: 'youtube.leanback.v4', title: 'YouTube', folderPath: '/media/cryptofs/apps/usr/palm/applications/youtube.leanback.v4', installTime: 1763223332, iconColor: '#e62117' },
+    { id: 'org.webosbrew.hbchannel', title: 'Homebrew Channel', folderPath: '/media/developer/apps/usr/palm/applications/org.webosbrew.hbchannel' }
+  ];
+
   // --- entradas HDMI ---
 
   function identify(dev) {
-    if (OVERRIDES[dev.id]) return OVERRIDES[dev.id];
+    if (OVERRIDES[dev.id]) return OVERRIDES[dev.id] === 'other' ? null : OVERRIDES[dev.id];
     var text = '';
     for (var k in dev) if (typeof dev[k] === 'string') text += ' ' + dev[k];
     for (var i = 0; i < DEVICES.length; i++) if (DEVICES[i].match.test(text)) return DEVICES[i].key;
@@ -336,6 +505,7 @@ body {
     var row = ROWS[1].items;
     var psPort = null, psLastAt = 0, now = Date.now();
     for (var c = 0; c < row.length; c++) {
+      if (!row[c].input) continue;
       var id = row[c].input;
       var dev = byId[id] || { id: id, connected: false };
       var key = dev.connected ? identify(dev) : null;
@@ -399,6 +569,73 @@ body {
     inputBridge.call('luna://com.webos.service.eim/getAllInputStatus', JSON.stringify({ subscribe: true }));
   }
 
+  // --- portas USB ---
+  // Pendrives e outros aparelhos USB, pelo serviço pdm. A TV numera as portas em usbPortNum;
+  // as portas internas (memória, Wi-Fi) ficam de fora. Números das portas externas a conferir
+  // na TV com um pendrive: aqui 1 = USB 1 e 2 = USB 2; outro número vai para a primeira livre.
+  var lastUsb = [];
+  var usbLists = { storage: [], other: [] };
+
+  function usbAt(n) {
+    var byPort = {}, loose = [];
+    for (var i = 0; i < lastUsb.length; i++) {
+      var p = lastUsb[i].usbPortNum;
+      if ((p === 1 || p === 2) && !byPort[p]) byPort[p] = lastUsb[i]; else loose.push(lastUsb[i]);
+    }
+    for (var k = 1; k <= 2; k++) if (!byPort[k] && loose.length) byPort[k] = loose.shift();
+    return byPort[n] || null;
+  }
+
+  function usbLabel(dev) {
+    var drive = dev.storageDriveList && dev.storageDriveList[0];
+    var name = (drive && drive.volumeLabel) || dev.productName || dev.vendorName || (dev.storageDriveList ? 'Pendrive' : 'Aparelho USB');
+    var kb = 0;
+    if (dev.storageDriveList) for (var i = 0; i < dev.storageDriveList.length; i++) kb += dev.storageDriveList[i].driveSize || 0;
+    if (kb) name += ' · ' + (kb >= 1048576 ? Math.round(kb / 1048576) + ' GB' : Math.round(kb / 1024) + ' MB');
+    return name;
+  }
+
+  function renderUsb(devices) {
+    lastUsb = devices;
+    var row = ROWS[1].items;
+    for (var c = 0; c < row.length; c++) {
+      if (!row[c].usb) continue;
+      var dev = usbAt(row[c].usb), el = tiles[1][c];
+      el.querySelector('.device-logo').src = logoUrl('usb');
+      el.querySelector('.kind').textContent = dev ? usbLabel(dev) : 'Nada conectado';
+      el.querySelector('.status-text').textContent = dev ? 'Conectado' : 'Vazio';
+      el.querySelector('.dot').className = dev ? 'dot is-on' : 'dot';
+      var cls = el.className.replace(' is-empty', '');
+      el.className = dev ? cls : cls + ' is-empty';
+    }
+  }
+
+  function external(list) {
+    var out = [];
+    for (var i = 0; i < (list || []).length; i++) {
+      var t = list[i].deviceType;
+      if (t !== 'INTERNAL' && t !== 'WIFIDONGLE' && !/builtin/.test(list[i].deviceSubtype || '')) out.push(list[i]);
+    }
+    return out;
+  }
+
+  var usbBridges = []; // mantém as assinaturas vivas
+  function watchUsb() {
+    var subs = [['storage', 'getAttachedStorageDeviceList', 'storageDeviceList'], ['other', 'getAttachedNonStorageDeviceList', 'nonStorageDeviceList']];
+    for (var i = 0; i < subs.length; i++) (function (sub) {
+      var b = new window.PalmServiceBridge();
+      usbBridges.push(b);
+      b.onservicecallback = function (msg) {
+        var res = {};
+        try { res = JSON.parse(msg); } catch (e) {}
+        if (!res[sub[2]]) return console.log('pdm: ' + msg);
+        usbLists[sub[0]] = external(res[sub[2]]);
+        renderUsb(usbLists.storage.concat(usbLists.other));
+      };
+      b.call('luna://com.webos.service.pdm/' + sub[1], JSON.stringify({ subscribe: true }));
+    })(subs[i]);
+  }
+
   // Jogo aberto no PS5: pergunta ao serviço do launcher, que consulta a PSN.
   var presenceBridge;
   function pollPresence() {
@@ -428,6 +665,7 @@ body {
     { connected: false }
   ];
   var simState = [0, 4, 4];
+  var simUsb = {};
   function renderSim() {
     var devices = [];
     for (var i = 0; i < simState.length; i++) {
@@ -435,6 +673,247 @@ body {
       devices.push({ id: ROWS[1].items[i].input, connected: d.connected, deviceName: d.deviceName || '' });
     }
     renderInputs(devices);
+  }
+
+  // --- configurações ---
+  // Chaves e valores conferidos na TV (getSystemSettings / getSystemSettingDesc do
+  // com.webos.settingsservice). Imagem e brilho valem para a entrada atual, como no menu da LG.
+
+  var PICTURE_MODES = [['vivid', 'Vívido'], ['normal', 'Padrão'], ['eco', 'Economia'], ['cinema', 'Cinema'], ['sports', 'Esportes'],
+    ['game', 'Jogo'], ['hdrEffect', 'Efeito HDR'], ['expert1', 'Especialista claro'], ['expert2', 'Especialista escuro']];
+  var SOUND_OUTPUTS = [['tv_speaker', 'Alto-falantes da TV'], ['external_arc', 'HDMI ARC'], ['external_optical', 'Saída óptica'],
+    ['bt_soundbar', 'Bluetooth'], ['headphone', 'Fone com fio']];
+  var SOUND_MODES = [['standard', 'Padrão'], ['movie', 'Cinema'], ['news', 'Notícias'], ['sports', 'Esportes'], ['music', 'Música'], ['game', 'Jogo']];
+  var SLEEP = [['off', 'Desligado'], ['10', '10 min'], ['20', '20 min'], ['30', '30 min'], ['60', '1 h'], ['90', '1 h 30'],
+    ['120', '2 h'], ['180', '3 h'], ['240', '4 h']];
+  var DEVICE_CHOICES = [['', 'Automático'], ['playstation', 'PlayStation'], ['xbox', 'Xbox'], ['nintendo', 'Nintendo Switch'], ['other', 'Outro aparelho']];
+
+  var SETTINGS = [
+    { group: 'Imagem e som' },
+    { name: 'Modo de imagem', category: 'picture', key: 'pictureMode', options: PICTURE_MODES },
+    { name: 'Brilho', category: 'picture', key: 'backlight', range: [0, 100, 5] },
+    { name: 'Saída de som', category: 'sound', key: 'soundOutput', options: SOUND_OUTPUTS },
+    { name: 'Modo de som', category: 'sound', key: 'soundMode', options: SOUND_MODES },
+    { group: 'Aparelhos nas entradas' },
+    { name: 'HDMI 1', device: 'HDMI_1', options: DEVICE_CHOICES },
+    { name: 'HDMI 2', device: 'HDMI_2', options: DEVICE_CHOICES },
+    { name: 'HDMI 3', device: 'HDMI_3', options: DEVICE_CHOICES },
+    { appsGroup: true },
+    { group: 'TV' },
+    { name: 'Desligar em', category: 'time', key: 'sleepTimer', options: SLEEP },
+    { name: 'Mais configurações da TV', app: 'com.palm.app.settings' }
+  ];
+
+  var settingsOpen = false;
+  var setRows = []; // itens de SETTINGS que recebem foco, na ordem da tela
+  var setEls = [];
+  var setFocusIdx = 0;
+  // Valores atuais, por 'categoria.chave'. Na prévia, começam com o que a TV tinha em out/2026.
+  var setValues = onTV ? {} : { 'picture.pictureMode': 'game', 'picture.backlight': '95', 'sound.soundOutput': 'tv_speaker', 'sound.soundMode': 'standard', 'time.sleepTimer': 'off' };
+
+  // Chamada ao luna. Se o webOS negar o acesso ao app, repete como root pelo serviço do
+  // Homebrew Channel, que roda o luna-send e devolve a saída.
+  var liveBridges = [];
+  function lunaCall(uri, params, cb) {
+    var b = new window.PalmServiceBridge();
+    liveBridges.push(b);
+    b.onservicecallback = function (msg) {
+      liveBridges.splice(liveBridges.indexOf(b), 1);
+      var res = {};
+      try { res = JSON.parse(msg); } catch (e) {}
+      var denied = res.returnValue === false && /denied|permission/i.test(res.errorText || '');
+      if (denied && uri.indexOf('hbchannel') < 0) return lunaExec(uri, params, cb);
+      cb(res);
+    };
+    b.call(uri, JSON.stringify(params));
+  }
+  function lunaExec(uri, params, cb) {
+    var command = "luna-send -n 1 " + uri + " '" + JSON.stringify(params) + "'";
+    lunaCall('luna://org.webosbrew.hbchannel.service/exec', { command: command }, function (res) {
+      var out = {};
+      try { out = JSON.parse(res.stdoutString); } catch (e) { out = { returnValue: false, errorText: res.errorText || 'exec falhou' }; }
+      cb(out);
+    });
+  }
+
+  var SHOW_HIDE = [['show', 'Mostrar'], ['hide', 'Esconder']];
+
+  function valueKey(s) { return s.device ? 'device.' + s.device : s.appId ? 'app.' + s.appId : s.category + '.' + s.key; }
+  function currentValue(s) {
+    if (s.device) return OVERRIDES[s.device] || '';
+    if (s.appId) return hiddenApps[s.appId] ? 'hide' : 'show';
+    return setValues[valueKey(s)];
+  }
+  function onHome(id) {
+    for (var i = 0; i < ROWS[0].items.length; i++) if (ROWS[0].items[i].id === id) return true;
+    return false;
+  }
+
+  function optionLabel(s, v) {
+    for (var i = 0; i < s.options.length; i++) if (s.options[i][0] === v) return s.options[i][1];
+    return v;
+  }
+
+  function buildSettings() {
+    var list = $('set-list');
+    list.innerHTML = '';
+    setRows = [];
+    setEls = [];
+    var all = [];
+    for (var i = 0; i < SETTINGS.length; i++) {
+      if (!SETTINGS[i].appsGroup) { all.push(SETTINGS[i]); continue; }
+      if (!userApps.length) continue;
+      all.push({ group: 'Apps na tela inicial · até ' + MAX_CARDS + ' cards com a Loja' });
+      for (var a = 0; a < userApps.length; a++) all.push({ name: esc(userApps[a].name), appId: userApps[a].id, options: SHOW_HIDE });
+    }
+    for (i = 0; i < all.length; i++) {
+      var s = all[i], el = document.createElement('div');
+      if (s.group) {
+        el.className = 'label set-group';
+        el.textContent = s.group;
+      } else {
+        el.className = 'tile setting' + (s.app ? ' is-link' : '');
+        el.setAttribute('data-idx', setRows.length);
+        el.innerHTML = '<span class="set-name">' + s.name + '</span><span class="set-value"><span class="arrow">◀</span>' +
+          (s.range ? '<span class="bar"><i></i></span>' : '') + '<span class="set-text"></span><span class="arrow">▶</span></span>';
+        el.addEventListener('mouseenter', onSettingHover);
+        el.addEventListener('click', onSettingClick);
+        setRows.push(s);
+        setEls.push(el);
+      }
+      list.appendChild(el);
+    }
+  }
+
+  function renderSettings() {
+    for (var i = 0; i < setRows.length; i++) {
+      var s = setRows[i], el = setEls[i], v = currentValue(s);
+      var text = s.app ? 'Abrir' : v === undefined ? '…' : v === null ? 'Indisponível' : s.range ? v + '%' : optionLabel(s, v);
+      if (s.appId && v === 'show' && !onHome(s.appId)) text = 'Sem espaço';
+      el.querySelector('.set-text').textContent = text;
+      if (s.range) el.querySelector('.bar i').style.width = (v ? +v : 0) + '%';
+    }
+  }
+
+  // idx -1 é o botão de voltar, ao lado do título.
+  function settingEl(idx) { return idx < 0 ? $('set-back') : setEls[idx]; }
+  function setSettingFocus(idx) {
+    var prev = settingEl(setFocusIdx);
+    if (prev) prev.className = prev.className.replace(' is-focused', '');
+    setFocusIdx = idx;
+    settingEl(idx).className += ' is-focused';
+    if (idx >= 0) scrollTo($('set-box'), $('set-list'), setEls[idx]);
+  }
+
+  // Lê da TV os valores de cada categoria usada na tela.
+  function loadSettings() {
+    var byCat = {};
+    for (var i = 0; i < setRows.length; i++) {
+      var s = setRows[i];
+      if (!s.category) continue;
+      (byCat[s.category] = byCat[s.category] || []).push(s.key);
+    }
+    for (var cat in byCat) loadCategory(cat, byCat[cat]);
+  }
+  function loadCategory(cat, keys) {
+    lunaCall('luna://com.webos.settingsservice/getSystemSettings', { category: cat, keys: keys }, function (res) {
+      for (var i = 0; i < keys.length; i++) {
+        var v = res.settings && res.settings[keys[i]];
+        setValues[cat + '.' + keys[i]] = v === undefined ? null : '' + v;
+      }
+      if (cat === 'picture' && res.dimension && res.dimension.input) $('set-sub').textContent = 'Imagem da entrada ' + res.dimension.input.toUpperCase();
+      renderSettings();
+    });
+  }
+
+  var saveTimers = {};
+  function saveSetting(s, v) {
+    if (s.device) {
+      if (v) OVERRIDES[s.device] = v; else delete OVERRIDES[s.device];
+      try { localStorage.setItem('launcher.devices', JSON.stringify(OVERRIDES)); } catch (e) {}
+      renderInputs(lastDevices);
+      return;
+    }
+    if (s.appId) {
+      if (v === 'hide') hiddenApps[s.appId] = true; else delete hiddenApps[s.appId];
+      try { localStorage.setItem('launcher.hiddenApps', JSON.stringify(hiddenApps)); } catch (e) {}
+      if (rawApps) setApps(rawApps);
+      return;
+    }
+    setValues[valueKey(s)] = v;
+    if (!onTV) return;
+    // O brilho muda a cada toque; espera o controle parar antes de gravar.
+    clearTimeout(saveTimers[valueKey(s)]);
+    saveTimers[valueKey(s)] = setTimeout(function () {
+      var settings = {};
+      settings[s.key] = v;
+      lunaCall('luna://com.webos.settingsservice/setSystemSettings', { category: s.category, settings: settings }, function (res) {
+        if (res.returnValue) return;
+        toast('Não mudou ' + s.name.toLowerCase(), res.errorText || '');
+        loadCategory(s.category, [s.key]);
+      });
+    }, s.range ? 350 : 0);
+  }
+
+  function changeSetting(dir) {
+    if (setFocusIdx < 0) return;
+    var s = setRows[setFocusIdx], v = currentValue(s);
+    if (s.app || v === undefined || v === null) return;
+    if (s.range) {
+      var n = Math.max(s.range[0], Math.min(s.range[1], Math.round((+v + dir * s.range[2]) / s.range[2]) * s.range[2]));
+      if (n === +v) return;
+      v = '' + n;
+    } else {
+      var idx = -1;
+      for (var i = 0; i < s.options.length; i++) if (s.options[i][0] === v) idx = i;
+      idx = idx < 0 ? 0 : (idx + dir + s.options.length) % s.options.length;
+      v = s.options[idx][0];
+    }
+    saveSetting(s, v);
+    renderSettings();
+  }
+
+  function activateSetting() {
+    if (setFocusIdx < 0) return closeSettings();
+    var s = setRows[setFocusIdx];
+    if (s.app) launch({ id: s.app, name: s.name });
+    else changeSetting(1);
+  }
+
+  function openSettings() {
+    settingsOpen = true;
+    $('home').hidden = true;
+    $('settings').hidden = false;
+    buildSettings();
+    $('set-list').setAttribute('data-y', 0);
+    setSettingFocus(0);
+    renderSettings();
+    if (onTV) loadSettings();
+  }
+
+  function closeSettings() {
+    settingsOpen = false;
+    $('settings').hidden = true;
+    $('home').hidden = false;
+  }
+
+  $('set-back').addEventListener('mouseenter', function () { setSettingFocus(-1); });
+  $('set-back').addEventListener('click', closeSettings);
+
+  function onSettingHover(e) { setSettingFocus(+e.currentTarget.getAttribute('data-idx')); }
+  function onSettingClick(e) { onSettingHover(e); activateSetting(); }
+
+  function onSettingsKey(e) {
+    switch (e.keyCode) {
+      case KEY.UP: if (setFocusIdx >= 0) setSettingFocus(setFocusIdx - 1); break;
+      case KEY.DOWN: if (setFocusIdx < setEls.length - 1) setSettingFocus(setFocusIdx + 1); break;
+      case KEY.LEFT: changeSetting(-1); break;
+      case KEY.RIGHT: changeSetting(1); break;
+      case KEY.ENTER: activateSetting(); break;
+      case KEY.BACK: case 27: case 8: closeSettings(); break; // Esc e Backspace para a prévia
+      default: return;
+    }
+    e.preventDefault();
   }
 
   var toastTimer;
@@ -457,6 +936,7 @@ body {
   }
 
   document.addEventListener('keydown', function (e) {
+    if (settingsOpen) return onSettingsKey(e);
     switch (e.keyCode) {
       case KEY.LEFT: move(-1, 0); break;
       case KEY.RIGHT: move(1, 0); break;
@@ -470,6 +950,14 @@ body {
         simState[p] = (simState[p] + 1) % SIM_CYCLE.length;
         renderSim();
         break;
+      case 52: case 53: // 4 e 5: liga/desliga um pendrive simulado na USB 1 / USB 2
+        if (onTV) return;
+        var port = e.keyCode - 51, list = [];
+        simUsb[port] = !simUsb[port];
+        if (simUsb[1]) list.push({ usbPortNum: 1, deviceType: 'USB', productName: 'Cruzer Blade', storageDriveList: [{ volumeLabel: 'FILMES', driveSize: 31260672 }] });
+        if (simUsb[2]) list.push({ usbPortNum: 2, deviceType: 'USB', productName: 'USB DISK', storageDriveList: [{ volumeLabel: '', driveSize: 7811072 }] });
+        renderUsb(list);
+        break;
       default: return;
     }
     e.preventDefault();
@@ -480,7 +968,7 @@ body {
     var d = new Date(), h = d.getHours();
     $('clock').textContent = pad(h) + ':' + pad(d.getMinutes());
     $('date').textContent = DAYS[d.getDay()] + ', ' + d.getDate() + ' de ' + MONTHS[d.getMonth()];
-    $('greeting').textContent = h >= 5 && h < 12 ? 'Bom dia' : h >= 12 && h < 18 ? 'Boa tarde' : 'Boa noite';
+    $('greeting').textContent = (h >= 5 && h < 12 ? 'Bom dia' : h >= 12 && h < 18 ? 'Boa tarde' : 'Boa noite') + ', ' + NAME;
     if (tiles[1]) renderInputs(lastDevices); // atualiza os "há N min"
   }
 
@@ -495,13 +983,16 @@ body {
 
   $('now-cover').addEventListener('error', function () { this.hidden = true; });
 
-  build();
   var saved = null;
   try { saved = (localStorage.getItem('launcher.focus') || '').split(','); } catch (e) {}
-  if (saved && tiles[+saved[0]] && tiles[+saved[0]][+saved[1]]) setFocus(+saved[0], +saved[1]);
-  else setFocus(0, 0);
-  renderInputs([]);
+  if (saved && saved.length === 2) { focus.row = +saved[0]; focus.col = +saved[1]; }
+  var cachedApps = null;
+  try { cachedApps = JSON.parse(localStorage.getItem('launcher.apps')); } catch (e) {}
+  setApps(onTV ? cachedApps || [] : SIM_APPS); // monta a tela; na TV, a lista certa chega logo depois
   if (onTV) {
+    loadApps();
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) loadApps(); });
+    watchUsb();
     watchInputs();
     pollPresence();
     setInterval(pollPresence, 60000);
