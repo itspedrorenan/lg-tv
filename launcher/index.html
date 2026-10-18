@@ -51,12 +51,16 @@ body {
 .clock { font-size: 196px; font-weight: 200; line-height: 1; letter-spacing: -6px; margin: 18px 0 0 -8px; font-variant-numeric: tabular-nums; }
 .date { font-size: 30px; color: var(--muted); margin-top: 20px; }
 
-.now { margin-top: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 28px; padding: 32px; }
+.now { margin-top: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 28px; padding: 32px; cursor: pointer; transition: background-color .15s, box-shadow .15s; -webkit-transition: background-color .15s, box-shadow .15s; }
+.now.is-focused { background: var(--panel-hi); border-color: var(--focus); box-shadow: 0 0 0 2px var(--focus); }
+.now.is-idle { cursor: default; }
 .now-head { display: flex; align-items: center; justify-content: space-between; }
 .now-state { font-size: 20px; color: var(--muted); display: flex; align-items: center; }
 .now-body { display: flex; align-items: center; margin-top: 28px; }
 .cover { width: 148px; height: 148px; border-radius: 18px; flex-shrink: 0; margin-right: 28px; background: var(--panel-hi); overflow: hidden; position: relative; }
-.cover img { width: 100%; height: 100%; display: block; }
+.cover img { position: relative; width: 100%; height: 100%; display: block; }
+.cover.is-logo img { padding: 40px 16px; box-sizing: border-box; } /* logo de console, mais largo que alto */
+.cover.is-colored .cover-letter { color: #fff; font-weight: 600; }
 .cover-letter { position: absolute; left: 0; top: 0; width: 100%; height: 100%; line-height: 148px; text-align: center; font-size: 64px; font-weight: 200; color: var(--muted); }
 .now-title { font-size: 40px; font-weight: 600; line-height: 1.15; max-height: 92px; overflow: hidden; }
 .now-meta { font-size: 22px; color: var(--muted); margin-top: 10px; }
@@ -170,7 +174,7 @@ body {
           <span class="now-state"><span class="dot" id="now-dot"></span><span id="now-state">Nada aberto</span></span>
         </div>
         <div class="now-body">
-          <div class="cover"><div class="cover-letter" id="now-letter">–</div><img id="now-cover" alt="" hidden></div>
+          <div class="cover" id="now-cover-box"><div class="cover-letter" id="now-letter">–</div><img id="now-cover" alt="" hidden></div>
           <div>
             <div class="now-title" id="now-title">Nenhum jogo aberto</div>
             <div class="now-meta" id="now-meta">O jogo do PS5 aparece aqui</div>
@@ -193,7 +197,7 @@ body {
       <div class="hints">
         <div class="hint"><span class="key">◀ ▲ ▼ ▶</span>navegar</div>
         <div class="hint"><span class="key">OK</span>abrir</div>
-        <div class="hint" id="hint-sim" hidden><span class="key">1–5</span>simular aparelho</div>
+        <div class="hint" id="hint-sim" hidden><span class="key">1–6</span>simular</div>
         <div id="row-system"></div>
       </div>
     </div>
@@ -235,6 +239,13 @@ body {
       el: 'row-system',
       items: [
         { id: 'settings', name: 'Configurações', css: 'shortcut', action: 'settings' }
+      ]
+    },
+    {
+      el: 'now', // o painel "Agora" já existe no HTML; OK nele volta para o que estava aberto
+      fixed: true,
+      items: [
+        { id: 'now', name: 'Agora', action: 'resume' }
       ]
     }
   ];
@@ -295,6 +306,16 @@ body {
   function build() {
     for (var r = 0; r < ROWS.length; r++) {
       var rowEl = $(ROWS[r].el);
+      if (ROWS[r].fixed) {
+        tiles[r] = [rowEl];
+        if (!rowEl.getAttribute('data-row')) {
+          rowEl.setAttribute('data-row', r);
+          rowEl.setAttribute('data-col', 0);
+          rowEl.addEventListener('mouseenter', onHover);
+          rowEl.addEventListener('click', onClick);
+        }
+        continue;
+      }
       rowEl.innerHTML = '';
       tiles[r] = [];
       for (var c = 0; c < ROWS[r].items.length; c++) {
@@ -363,6 +384,7 @@ body {
     for (var r = 0; r < tiles.length; r++) {
       for (var c = 0; c < tiles[r].length; c++) {
         if (r === focus.row && c === focus.col) continue;
+        if (tiles[r][c].className.indexOf('is-idle') >= 0) continue; // "Agora" vazio não recebe foco
         var to = center(tiles[r][c]);
         var main = dx ? (to.x - from.x) * dx : (to.y - from.y) * dy;
         if (main <= 1) continue;
@@ -378,6 +400,11 @@ body {
 
   function launch(item) {
     if (item.action === 'settings') return openSettings();
+    if (item.action === 'resume') {
+      var u = lastUsed && describeUsed(lastUsed);
+      if (!u) return;
+      item = { id: lastUsed.id, name: u.title };
+    }
     if (item.usb && !usbAt(item.usb)) return toast('Nada conectado na ' + item.name);
     if (onTV) {
       var bridge = new window.PalmServiceBridge();
@@ -391,6 +418,7 @@ body {
     } else {
       toast('Na TV, abriria ' + item.name, item.id);
     }
+    noteUsed(item.id);
   }
 
   function knownFor(app) {
@@ -537,24 +565,83 @@ body {
     renderNow(psPort, psLastAt);
   }
 
-  // Painel "Agora": o jogo aberto no PS5, quando houver; senão, quando o PS5 foi ligado pela última vez.
+  // --- painel "Agora" ---
+  // Mostra o que estava na tela antes de voltar ao launcher: um app (Netflix, Globoplay…),
+  // uma entrada HDMI com o aparelho dela, a TV ao vivo ou o USB. A troca de app vem do
+  // getForegroundAppInfo; quando o launcher abre algo, também anota na hora.
+  var OWN_ID = 'com.pedrorenan.launcher';
+  var CONSOLES = { playstation: true, xbox: true, nintendo: true };
+  var lastUsed = null; // { id: appId, at: ms }
+  try { lastUsed = JSON.parse(localStorage.getItem('launcher.lastUsed')); } catch (e) {}
+
+  function userApp(id) {
+    for (var i = 0; i < userApps.length; i++) if (userApps[i].id === id) return userApps[i];
+    return null;
+  }
+
+  function trackable(id) {
+    return /^com\.webos\.app\.hdmi\d$/.test(id) || id === 'com.webos.app.livetv' || id === 'com.webos.app.photovideo' || !!userApp(id);
+  }
+
+  function noteUsed(id) {
+    if (!id || id === OWN_ID || !trackable(id)) return;
+    lastUsed = { id: id, at: Date.now() };
+    if (persistLastOn) { try { localStorage.setItem('launcher.lastUsed', JSON.stringify(lastUsed)); } catch (e) {} }
+    renderInputs(lastDevices);
+  }
+
+  function ago(at) { var t = relativeTime(at); return t.charAt(0).toUpperCase() + t.slice(1); }
+
+  // O que mostrar no painel para o último app usado, ou null se não der para descrever.
+  function describeUsed(u) {
+    var m = /hdmi(\d)$/.exec(u.id);
+    if (m) {
+      var input = 'HDMI_' + m[1], port = 'HDMI ' + m[1];
+      var key = OVERRIDES[input] && OVERRIDES[input] !== 'other' ? OVERRIDES[input] : lastOn[input] ? lastOn[input].key : null;
+      if (key === 'playstation' && psGame) return { verb: 'Jogando', title: psGame.name, meta: 'PlayStation 5 · ' + port, icon: psGame.icon, glyph: psGame.name.charAt(0) };
+      if (key) return { verb: CONSOLES[key] ? 'Jogando' : 'Assistindo', title: deviceLabel(key), meta: port + ' · ' + relativeTime(u.at), logo: logoUrl(key) };
+      return { verb: 'Assistindo', title: port, meta: ago(u.at), logo: logoUrl(null) };
+    }
+    if (u.id === 'com.webos.app.livetv') return { verb: 'Assistindo', title: 'TV ao vivo', meta: ago(u.at), glyph: 'TV' };
+    if (u.id === 'com.webos.app.photovideo') return { verb: 'Vendo', title: 'Fotos & Vídeos', meta: 'USB · ' + relativeTime(u.at), logo: logoUrl('usb') };
+    var a = userApp(u.id);
+    if (!a) return null;
+    return { verb: a.kind === 'App' ? 'Usando' : 'Assistindo', title: a.name, meta: 'Aberto ' + relativeTime(u.at), glyph: a.glyph, mark: a.mark, color: a.color, icon: a.icon };
+  }
+
+  // Sem nada anotado, o painel volta ao que já fazia: o jogo do PS5 pela PSN, ou quando ele foi ligado.
   function renderNow(psPort, psLastAt) {
-    var active = psGame && psPort;
-    $('now').className = active ? 'now' : 'now is-idle';
-    $('now-dot').className = active ? 'dot is-on' : 'dot';
-    $('now-state').textContent = active ? 'Jogando' : 'Nada aberto';
-    $('now-title').textContent = active ? psGame.name : 'Nenhum jogo aberto';
-    $('now-meta').textContent = active ? 'PlayStation 5 · ' + psPort
-      : psLastAt ? 'PS5 ligado ' + relativeTime(psLastAt)
-      : 'O jogo do PS5 aparece aqui';
-    $('now-letter').textContent = active ? psGame.name.charAt(0) : '–';
-    var img = $('now-cover');
-    if (active && psGame.icon) {
-      if (img.getAttribute('src') !== psGame.icon) img.src = psGame.icon;
+    var u = lastUsed && describeUsed(lastUsed);
+    if (!u && psGame && psPort) u = { verb: 'Jogando', title: psGame.name, meta: 'PlayStation 5 · ' + psPort, icon: psGame.icon, glyph: psGame.name.charAt(0) };
+    var panel = $('now'), focused = panel.className.indexOf('is-focused') >= 0;
+    panel.className = (u ? 'now' : 'now is-idle') + (focused && u ? ' is-focused' : '');
+    if (focused && !u) restoreFocus(0, 0);
+    $('now-dot').className = u ? 'dot is-on' : 'dot';
+    $('now-state').textContent = u ? u.verb : 'Nada aberto';
+    $('now-title').textContent = u ? u.title : 'Nada aberto';
+    $('now-meta').textContent = u ? u.meta : psLastAt ? 'PS5 ligado ' + relativeTime(psLastAt) : 'O que você assistir ou jogar aparece aqui';
+    $('now-letter').textContent = u && !u.logo ? u.glyph || u.title.charAt(0) : '–';
+    var box = $('now-cover-box'), img = $('now-cover'), src = u ? u.logo || u.icon : '';
+    box.className = 'cover' + (u && u.mark ? ' mark-' + u.mark : '') + (u && (u.mark || u.color) ? ' is-colored' : '') + (u && u.logo ? ' is-logo' : '');
+    box.style.background = u && u.color ? u.color : '';
+    if (src) {
+      if (img.getAttribute('src') !== src) img.src = src;
       img.hidden = false;
     } else {
       img.hidden = true;
     }
+  }
+
+  var fgBridge; // mantém a assinatura viva
+  function watchForeground() {
+    fgBridge = new window.PalmServiceBridge();
+    fgBridge.onservicecallback = function (msg) {
+      var res = {};
+      try { res = JSON.parse(msg); } catch (e) {}
+      if (res.appId) noteUsed(res.appId);
+      else if (res.returnValue === false) console.log('foreground: ' + msg);
+    };
+    fgBridge.call('luna://com.webos.applicationManager/getForegroundAppInfo', JSON.stringify({ subscribe: true }));
   }
 
   var inputBridge; // mantém a assinatura viva
@@ -666,6 +753,8 @@ body {
   ];
   var simState = [0, 4, 4];
   var simUsb = {};
+  var SIM_USED = ['netflix', 'com.webos.app.hdmi1', 'globoplaywebos', 'com.webos.app.hdmi2', null];
+  var simUsed = 0;
   function renderSim() {
     var devices = [];
     for (var i = 0; i < simState.length; i++) {
@@ -950,6 +1039,12 @@ body {
         simState[p] = (simState[p] + 1) % SIM_CYCLE.length;
         renderSim();
         break;
+      case 54: // 6: troca o que o painel "Agora" mostra
+        if (onTV) return;
+        simUsed = (simUsed + 1) % SIM_USED.length;
+        lastUsed = SIM_USED[simUsed] ? { id: SIM_USED[simUsed], at: Date.now() - 12 * 60000 } : null;
+        renderInputs(lastDevices);
+        break;
       case 52: case 53: // 4 e 5: liga/desliga um pendrive simulado na USB 1 / USB 2
         if (onTV) return;
         var port = e.keyCode - 51, list = [];
@@ -994,6 +1089,7 @@ body {
     document.addEventListener('visibilitychange', function () { if (!document.hidden) loadApps(); });
     watchUsb();
     watchInputs();
+    watchForeground();
     pollPresence();
     setInterval(pollPresence, 60000);
     document.addEventListener('visibilitychange', pollPresence);
@@ -1003,6 +1099,7 @@ body {
     persistLastOn = false;
     var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); yesterday.setHours(21, 40, 0, 0);
     lastOn = { HDMI_2: { key: 'nintendo', at: yesterday.getTime() } };
+    lastUsed = { id: 'netflix', at: Date.now() - 12 * 60000 };
     renderSim();
     $('hint-sim').hidden = false;
   }
