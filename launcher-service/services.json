@@ -1,0 +1,10 @@
+{
+  "id": "com.pedrorenan.launcher.service",
+  "description": "Serviço do launcher: presença PSN",
+  "services": [
+    {
+      "name": "com.pedrorenan.launcher.service",
+      "description": "Presença PSN"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "com.pedrorenan.launcher.service",
+  "version": "0.1.0",
+  "description": "Serviço do launcher: presença PSN",
+  "main": "service.js"
+}

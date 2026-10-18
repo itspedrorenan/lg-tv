@@ -83,7 +83,8 @@ body {
 .device-logo { width: 120px; height: 60px; margin-right: 26px; flex-shrink: 0; }
 .input.is-empty .device-logo { opacity: .35; }
 .input .name { font-size: 34px; font-weight: 700; }
-.input .kind { font-size: 21px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+.input .kind { font-size: 21px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 194px; }
+.input .kind.is-playing { color: var(--text); }
 
 /* rodapé com dicas do controle */
 .hints { margin-top: auto; padding-top: 32px; display: flex; align-items: center; font-size: 24px; color: var(--muted); }
@@ -253,8 +254,12 @@ body {
     return '';
   }
 
+  var psGame = null; // jogo aberto no PS5, segundo a presença PSN
+  var lastDevices = [];
+
   // devices: lista no formato do serviço EIM, [{ id: 'HDMI_1', connected: true, deviceName: 'PS5', ... }]
   function renderInputs(devices) {
+    lastDevices = devices;
     var byId = {};
     for (var i = 0; i < devices.length; i++) byId[devices[i].id] = devices[i];
     var row = ROWS[1].items;
@@ -263,7 +268,10 @@ body {
       var key = dev.connected ? identify(dev) : null;
       var el = tiles[1][c];
       el.querySelector('.device-logo').src = logoUrl(key);
-      el.querySelector('.kind').textContent = !dev.connected ? 'Nada conectado' : key ? deviceLabel(key) : 'Aparelho conectado';
+      var playing = key === 'playstation' && psGame;
+      var kind = el.querySelector('.kind');
+      kind.textContent = playing ? psGame : !dev.connected ? 'Nada conectado' : key ? deviceLabel(key) : 'Aparelho conectado';
+      kind.className = playing ? 'kind is-playing' : 'kind';
       var cls = el.className.replace(' is-empty', '');
       el.className = dev.connected ? cls : cls + ' is-empty';
     }
@@ -279,6 +287,21 @@ body {
       else if (res.returnValue === false) console.log('EIM indisponível: ' + msg);
     };
     inputBridge.call('luna://com.webos.service.eim/getAllInputStatus', JSON.stringify({ subscribe: true }));
+  }
+
+  // Jogo aberto no PS5: pergunta ao serviço do launcher, que consulta a PSN.
+  var presenceBridge;
+  function pollPresence() {
+    if (document.hidden) return;
+    presenceBridge = new window.PalmServiceBridge();
+    presenceBridge.onservicecallback = function (msg) {
+      var res = {};
+      try { res = JSON.parse(msg); } catch (e) {}
+      if (!res.returnValue) console.log('PSN: ' + msg);
+      var game = res.returnValue && res.game ? res.game.name : null;
+      if (game !== psGame) { psGame = game; renderInputs(lastDevices); }
+    };
+    presenceBridge.call('luna://com.pedrorenan.launcher.service/presence', '{}');
   }
 
   // Prévia no navegador: teclas 1, 2 e 3 trocam o aparelho simulado em cada entrada.
@@ -360,8 +383,16 @@ body {
   if (saved && tiles[+saved[0]] && tiles[+saved[0]][+saved[1]]) setFocus(+saved[0], +saved[1]);
   else setFocus(0, 0);
   renderInputs([]);
-  if (onTV) watchInputs();
-  else { renderSim(); document.getElementById('hint-sim').hidden = false; }
+  if (onTV) {
+    watchInputs();
+    pollPresence();
+    setInterval(pollPresence, 60000);
+    document.addEventListener('visibilitychange', pollPresence);
+  } else {
+    psGame = 'Astro Bot'; // exemplo para a prévia
+    renderSim();
+    document.getElementById('hint-sim').hidden = false;
+  }
   tick();
   setInterval(tick, 20000);
   fit();
