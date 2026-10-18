@@ -47,7 +47,7 @@ body {
 .device b { color: var(--text); font-weight: 600; }
 
 /* seções */
-.section { margin-top: 72px; }
+.section { margin-top: 56px; }
 .section + .section { margin-top: 56px; }
 .label { font-size: 22px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin: 0 0 22px 4px; }
 .row { display: flex; }
@@ -78,15 +78,15 @@ body {
 .app-crunchyroll { background: #8f4211; background: linear-gradient(135deg, #f47521 0%, #87380a 100%); }
 
 /* entradas HDMI */
-.input { width: 300px; height: 132px; padding: 26px 30px; background: var(--panel); border-color: var(--line); display: flex; align-items: center; }
+.input { width: 400px; height: 132px; padding: 26px 30px; background: var(--panel); border-color: var(--line); display: flex; align-items: center; }
 .input.is-focused { border-color: var(--focus); }
-.port { width: 64px; height: 40px; margin-right: 24px; border: 3px solid var(--muted); border-radius: 6px 6px 16px 16px; box-sizing: border-box; flex-shrink: 0; }
-.input.is-focused .port { border-color: var(--focus); }
+.device-logo { width: 120px; height: 60px; margin-right: 26px; flex-shrink: 0; }
+.input.is-empty .device-logo { opacity: .35; }
 .input .name { font-size: 34px; font-weight: 700; }
-.input .kind { font-size: 21px; color: var(--muted); margin-top: 2px; }
+.input .kind { font-size: 21px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
 
 /* rodapé com dicas do controle */
-.hints { margin-top: auto; display: flex; align-items: center; font-size: 24px; color: var(--muted); }
+.hints { margin-top: auto; padding-top: 32px; display: flex; align-items: center; font-size: 24px; color: var(--muted); }
 .hint { display: flex; align-items: center; margin-right: 48px; }
 .key { display: inline-block; min-width: 44px; height: 44px; line-height: 40px; padding: 0 12px; margin-right: 14px; border: 2px solid var(--line); border-radius: 22px; box-sizing: border-box; text-align: center; color: var(--text); font-weight: 700; font-size: 20px; }
 
@@ -130,6 +130,7 @@ body {
       <div class="hint"><span class="key">◀ ▶</span>navegar</div>
       <div class="hint"><span class="key">▲ ▼</span>trocar de linha</div>
       <div class="hint"><span class="key">OK</span>abrir</div>
+      <div class="hint" id="hint-sim" hidden><span class="key">1 2 3</span>simular aparelho na entrada</div>
     </div>
 
     <div id="toast"></div>
@@ -154,12 +155,25 @@ body {
     {
       el: 'row-inputs',
       items: [
-        { id: 'com.webos.app.hdmi1', name: 'HDMI 1', kind: 'Entrada', css: 'input', port: true },
-        { id: 'com.webos.app.hdmi2', name: 'HDMI 2', kind: 'Entrada', css: 'input', port: true },
-        { id: 'com.webos.app.hdmi3', name: 'HDMI 3', kind: 'Entrada', css: 'input', port: true }
+        { id: 'com.webos.app.hdmi1', name: 'HDMI 1', css: 'input', input: 'HDMI_1' },
+        { id: 'com.webos.app.hdmi2', name: 'HDMI 2', css: 'input', input: 'HDMI_2' },
+        { id: 'com.webos.app.hdmi3', name: 'HDMI 3', css: 'input', input: 'HDMI_3' }
       ]
     }
   ];
+
+  // Aparelhos reconhecidos nas entradas. O teste roda sobre os textos que a TV informa
+  // da porta (nome CEC, rótulo, fabricante), ex.: "PS5", "Xbox Series X", "NintendoSwitch".
+  var DEVICES = [
+    { key: 'playstation', label: 'PlayStation', match: /playstation|\bps[345]\b|\bsie\b/i },
+    { key: 'xbox', label: 'Xbox', match: /xbox/i },
+    { key: 'nintendo', label: 'Nintendo Switch', match: /nintendo|switch/i }
+  ];
+
+  // Use se a TV não identificar sozinha um aparelho, ex.: { HDMI_2: 'xbox' }
+  var OVERRIDES = {};
+
+  function logoUrl(key) { return 'img/devices/' + (key || 'default') + '.svg'; }
 
   var KEY = { LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, ENTER: 13, BACK: 461 };
   var MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -180,8 +194,8 @@ body {
         el.setAttribute('tabindex', '-1');
         el.setAttribute('data-row', r);
         el.setAttribute('data-col', c);
-        el.innerHTML = item.port
-          ? '<div class="port"></div><div><div class="name">' + item.name + '</div><div class="kind">' + item.kind + '</div></div>'
+        el.innerHTML = item.input
+          ? '<img class="device-logo" alt=""><div><div class="name">' + item.name + '</div><div class="kind"></div></div>'
           : '<div class="glyph">' + item.glyph + '</div><div class="name">' + item.name + '</div><div class="kind">' + item.kind + '</div>';
         el.addEventListener('mouseenter', onHover);
         el.addEventListener('click', onClick);
@@ -224,6 +238,67 @@ body {
     }
   }
 
+  // --- entradas HDMI ---
+
+  function identify(dev) {
+    if (OVERRIDES[dev.id]) return OVERRIDES[dev.id];
+    var text = '';
+    for (var k in dev) if (typeof dev[k] === 'string') text += ' ' + dev[k];
+    for (var i = 0; i < DEVICES.length; i++) if (DEVICES[i].match.test(text)) return DEVICES[i].key;
+    return null;
+  }
+
+  function deviceLabel(key) {
+    for (var i = 0; i < DEVICES.length; i++) if (DEVICES[i].key === key) return DEVICES[i].label;
+    return '';
+  }
+
+  // devices: lista no formato do serviço EIM, [{ id: 'HDMI_1', connected: true, deviceName: 'PS5', ... }]
+  function renderInputs(devices) {
+    var byId = {};
+    for (var i = 0; i < devices.length; i++) byId[devices[i].id] = devices[i];
+    var row = ROWS[1].items;
+    for (var c = 0; c < row.length; c++) {
+      var dev = byId[row[c].input] || { id: row[c].input, connected: false };
+      var key = dev.connected ? identify(dev) : null;
+      var el = tiles[1][c];
+      el.querySelector('.device-logo').src = logoUrl(key);
+      el.querySelector('.kind').textContent = !dev.connected ? 'Nada conectado' : key ? deviceLabel(key) : 'Aparelho conectado';
+      var cls = el.className.replace(' is-empty', '');
+      el.className = dev.connected ? cls : cls + ' is-empty';
+    }
+  }
+
+  var inputBridge; // mantém a assinatura viva
+  function watchInputs() {
+    inputBridge = new window.PalmServiceBridge();
+    inputBridge.onservicecallback = function (msg) {
+      var res = {};
+      try { res = JSON.parse(msg); } catch (e) {}
+      if (res.devices) renderInputs(res.devices);
+      else if (res.returnValue === false) console.log('EIM indisponível: ' + msg);
+    };
+    inputBridge.call('luna://com.webos.service.eim/getAllInputStatus', JSON.stringify({ subscribe: true }));
+  }
+
+  // Prévia no navegador: teclas 1, 2 e 3 trocam o aparelho simulado em cada entrada.
+  var SIM_CYCLE = [
+    { connected: true, deviceName: 'PS5' },
+    { connected: true, deviceName: 'Xbox Series X' },
+    { connected: true, deviceName: 'NintendoSwitch' },
+    { connected: true, deviceName: 'Blu-ray Player' },
+    { connected: false }
+  ];
+  var simState = [0, 2, 4];
+  function renderSim() {
+    var devices = [];
+    for (var i = 0; i < simState.length; i++) {
+      var d = SIM_CYCLE[simState[i]];
+      devices.push({ id: ROWS[1].items[i].input, connected: d.connected, deviceName: d.deviceName || '' });
+    }
+    renderInputs(devices);
+  }
+
   var toastTimer;
   function toast(text, detail) {
     var el = document.getElementById('toast');
@@ -251,6 +326,12 @@ body {
       case KEY.DOWN: move(1, 0); break;
       case KEY.ENTER: launch(ROWS[focus.row].items[focus.col]); break;
       case KEY.BACK: break; // o launcher é a raiz: Voltar não faz nada
+      case 49: case 50: case 51:
+        if (onTV) return;
+        var p = e.keyCode - 49;
+        simState[p] = (simState[p] + 1) % SIM_CYCLE.length;
+        renderSim();
+        break;
       default: return;
     }
     e.preventDefault();
@@ -278,6 +359,9 @@ body {
   try { saved = (localStorage.getItem('launcher.focus') || '').split(','); } catch (e) {}
   if (saved && tiles[+saved[0]] && tiles[+saved[0]][+saved[1]]) setFocus(+saved[0], +saved[1]);
   else setFocus(0, 0);
+  renderInputs([]);
+  if (onTV) watchInputs();
+  else { renderSim(); document.getElementById('hint-sim').hidden = false; }
   tick();
   setInterval(tick, 20000);
   fit();

@@ -18,6 +18,20 @@ luna-send -n 1 -f luna://com.webos.applicationManager/listApps '{}' | grep '"id"
 
 Ajuste os IDs marcados com `VERIFICAR` em `launcher/index.html` (Globoplay e Crunchyroll).
 
+## Aparelhos nas entradas HDMI
+
+Cada entrada mostra o logo do aparelho ligado: PlayStation, Xbox ou Nintendo. Aparelho não reconhecido ou porta vazia usa o ícone padrão. Os logos ficam em `launcher/img/devices/` (`playstation.svg`, `xbox.svg`, `nintendo.svg`, `default.svg`).
+
+A detecção usa o serviço de entradas da TV (EIM) e o nome que o aparelho envia pelo HDMI-CEC. Para conferir o que a TV informa, ligue os consoles e rode pelo telnet:
+
+```sh
+luna-send -n 1 -f luna://com.webos.service.eim/getAllInputStatus '{}'
+```
+
+Se algum aparelho não for reconhecido, fixe o tipo em `OVERRIDES` no `launcher/index.html`, por exemplo `{ HDMI_2: 'xbox' }`.
+
+No navegador, as teclas 1, 2 e 3 trocam o aparelho simulado em cada entrada.
+
 ## Instalar na TV
 
 1. No Mac, gere o pacote (precisa do `@webos-tools/cli`):
