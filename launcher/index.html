@@ -308,7 +308,25 @@ body {
   }
 
   var psGame = null; // jogo aberto no PS5, segundo a presença PSN: { name, icon }
+  var psLastOnline = 0; // última vez que a PSN viu o PS5 online (ms)
   var lastDevices = [];
+
+  // Última vez que cada entrada teve um aparelho ligado: { HDMI_1: { key: 'playstation', at: ms } }.
+  // Só é registrado enquanto o launcher está aberto; para o PS5 a PSN completa.
+  var lastOn = {};
+  var persistLastOn = true;
+  try { lastOn = JSON.parse(localStorage.getItem('launcher.lastOn')) || {}; } catch (e) {}
+
+  function relativeTime(at) {
+    var now = new Date(), d = new Date(at);
+    var min = Math.floor((now - d) / 60000);
+    if (min < 2) return 'há pouco';
+    if (min < 60) return 'há ' + min + ' min';
+    var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    if (at >= midnight) return 'há ' + Math.floor(min / 60) + ' h';
+    if (at >= midnight - 86400000) return 'ontem às ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    return 'em ' + d.getDate() + ' de ' + MONTHS[d.getMonth()];
+  }
 
   // devices: lista no formato do serviço EIM, [{ id: 'HDMI_1', connected: true, deviceName: 'PS5', ... }]
   function renderInputs(devices) {
@@ -316,31 +334,49 @@ body {
     var byId = {};
     for (var i = 0; i < devices.length; i++) byId[devices[i].id] = devices[i];
     var row = ROWS[1].items;
-    var psPort = null;
+    var psPort = null, psLastAt = 0, now = Date.now();
     for (var c = 0; c < row.length; c++) {
-      var dev = byId[row[c].input] || { id: row[c].input, connected: false };
+      var id = row[c].input;
+      var dev = byId[id] || { id: id, connected: false };
       var key = dev.connected ? identify(dev) : null;
+      if (dev.connected) lastOn[id] = { key: key, at: now };
+      var seen = lastOn[id];
+      var shownKey = dev.connected ? key : seen ? seen.key : null;
+      var seenAt = seen ? seen.at : 0;
+      if (shownKey === 'playstation' && psLastOnline > seenAt) seenAt = psLastOnline;
+      if (shownKey === 'playstation') {
+        if (!psPort) psPort = row[c].name;
+        if (seenAt > psLastAt) psLastAt = seenAt;
+      }
       var playing = key === 'playstation' && psGame;
-      if (key === 'playstation' && !psPort) psPort = row[c].name;
       var el = tiles[1][c];
-      el.querySelector('.device-logo').src = logoUrl(key);
-      el.querySelector('.kind').textContent = playing ? psGame.name : !dev.connected ? 'Nada conectado' : key ? deviceLabel(key) : 'Aparelho conectado';
-      el.querySelector('.status-text').textContent = playing ? 'Jogando' : dev.connected ? 'Conectado' : 'Vazio';
+      el.querySelector('.device-logo').src = logoUrl(shownKey);
+      el.querySelector('.kind').textContent = playing ? psGame.name
+        : dev.connected ? (key ? deviceLabel(key) : 'Aparelho conectado')
+        : seen ? (shownKey ? deviceLabel(shownKey) : 'Aparelho')
+        : 'Nada conectado';
+      el.querySelector('.status-text').textContent = playing ? 'Jogando'
+        : dev.connected ? 'Ligado agora'
+        : seen ? 'Ligado ' + relativeTime(seenAt)
+        : 'Vazio';
       el.querySelector('.dot').className = dev.connected ? 'dot is-on' : 'dot';
       var cls = el.className.replace(' is-empty', '');
       el.className = dev.connected ? cls : cls + ' is-empty';
     }
-    renderNow(psPort);
+    if (persistLastOn) { try { localStorage.setItem('launcher.lastOn', JSON.stringify(lastOn)); } catch (e) {} }
+    renderNow(psPort, psLastAt);
   }
 
-  // Painel "Agora": o jogo aberto no PS5, quando houver.
-  function renderNow(psPort) {
+  // Painel "Agora": o jogo aberto no PS5, quando houver; senão, quando o PS5 foi ligado pela última vez.
+  function renderNow(psPort, psLastAt) {
     var active = psGame && psPort;
     $('now').className = active ? 'now' : 'now is-idle';
     $('now-dot').className = active ? 'dot is-on' : 'dot';
     $('now-state').textContent = active ? 'Jogando' : 'Nada aberto';
     $('now-title').textContent = active ? psGame.name : 'Nenhum jogo aberto';
-    $('now-meta').textContent = active ? 'PlayStation 5 · ' + psPort : 'O jogo do PS5 aparece aqui';
+    $('now-meta').textContent = active ? 'PlayStation 5 · ' + psPort
+      : psLastAt ? 'PS5 ligado ' + relativeTime(psLastAt)
+      : 'O jogo do PS5 aparece aqui';
     $('now-letter').textContent = active ? psGame.name.charAt(0) : '–';
     var img = $('now-cover');
     if (active && psGame.icon) {
@@ -373,7 +409,12 @@ body {
       try { res = JSON.parse(msg); } catch (e) {}
       if (!res.returnValue) console.log('PSN: ' + msg);
       var game = res.returnValue && res.game ? res.game : null;
-      if ((game && game.name) !== (psGame && psGame.name)) { psGame = game; renderInputs(lastDevices); }
+      var seen = res.returnValue ? (res.online ? Date.now() : Date.parse(res.lastOnline) || 0) : psLastOnline;
+      if ((game && game.name) !== (psGame && psGame.name) || seen !== psLastOnline) {
+        psGame = game;
+        psLastOnline = seen;
+        renderInputs(lastDevices);
+      }
     };
     presenceBridge.call('luna://com.pedrorenan.launcher.service/presence', '{}');
   }
@@ -386,7 +427,7 @@ body {
     { connected: true, deviceName: 'Blu-ray Player' },
     { connected: false }
   ];
-  var simState = [0, 2, 4];
+  var simState = [0, 4, 4];
   function renderSim() {
     var devices = [];
     for (var i = 0; i < simState.length; i++) {
@@ -440,6 +481,7 @@ body {
     $('clock').textContent = pad(h) + ':' + pad(d.getMinutes());
     $('date').textContent = DAYS[d.getDay()] + ', ' + d.getDate() + ' de ' + MONTHS[d.getMonth()];
     $('greeting').textContent = h >= 5 && h < 12 ? 'Bom dia' : h >= 12 && h < 18 ? 'Boa tarde' : 'Boa noite';
+    if (tiles[1]) renderInputs(lastDevices); // atualiza os "há N min"
   }
 
   function fit() {
@@ -465,7 +507,11 @@ body {
     setInterval(pollPresence, 60000);
     document.addEventListener('visibilitychange', pollPresence);
   } else {
-    psGame = { name: 'Astro Bot', icon: null }; // exemplo para a prévia
+    // exemplos para a prévia, sem gravar no navegador
+    psGame = { name: 'Astro Bot', icon: null };
+    persistLastOn = false;
+    var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); yesterday.setHours(21, 40, 0, 0);
+    lastOn = { HDMI_2: { key: 'nintendo', at: yesterday.getTime() } };
     renderSim();
     $('hint-sim').hidden = false;
   }

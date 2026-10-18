@@ -4,7 +4,7 @@
 //
 // Métodos (luna://com.pedrorenan.launcher.service/...):
 //   setToken { npsso, onlineId? } -> guarda o NPSSO e testa o login
-//   presence {}                  -> { online, platform, game: { name, icon } | null }
+//   presence {}                  -> { online, platform, lastOnline, game: { name, icon } | null }
 
 var Service = require('webos-service');
 var https = require('https');
@@ -160,6 +160,7 @@ function fetchPresence(cb) {
         cb(null, {
           online: online,
           platform: platform.platform || null,
+          lastOnline: platform.lastOnlineDate || null,
           game: title ? { name: title.titleName, icon: title.conceptIconUrl || null } : null
         });
       });
