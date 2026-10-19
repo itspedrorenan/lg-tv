@@ -1,0 +1,39 @@
+#!/bin/sh
+# Script de boot do Homebrew Channel (vai em /var/lib/webosbrew/init.d/, sem extensão:
+# o run-parts ignora nomes com ponto). Abre o launcher no boot e sempre que a TV sai
+# do standby, que é o que acontece ao ligar pelo controle. Depois de abrir, fecha o
+# navegador que a TV deixa pré-carregado. Roda em segundo plano para não segurar os
+# outros scripts nem o resto do startup do Homebrew.
+
+LAUNCHER=com.pedrorenan.launcher
+
+abrir() {
+  luna-send -n 1 luna://com.webos.applicationManager/launch "{\"id\":\"$LAUNCHER\"}" >/dev/null 2>&1
+  sleep 8
+  luna-send -n 1 luna://com.webos.applicationManager/closeByAppId '{"id":"com.webos.app.browser"}' >/dev/null 2>&1
+}
+
+(
+  # Espera o gerenciador de apps responder (até uns 2 minutos).
+  i=0
+  while [ $i -lt 60 ] && ! luna-send -n 1 luna://com.webos.applicationManager/getForegroundAppInfo '{}' 2>/dev/null | grep -q '"returnValue": *true'; do
+    sleep 2
+    i=$((i + 1))
+  done
+  sleep 5
+  abrir
+
+  # Ao voltar do standby, o estado de energia passa para "Active".
+  while true; do
+    ultimo=Active
+    luna-send -i luna://com.webos.service.tvpower/power/getPowerState '{"subscribe":true}' 2>/dev/null | while read -r linha; do
+      estado=$(echo "$linha" | sed -n 's/.*"state": *"\([^"]*\)".*/\1/p')
+      [ -z "$estado" ] && continue
+      if [ "$estado" = Active ] && [ "$ultimo" != Active ]; then
+        abrir
+      fi
+      ultimo=$estado
+    done
+    sleep 10 # a assinatura caiu; tenta de novo
+  done
+) >/dev/null 2>&1 &

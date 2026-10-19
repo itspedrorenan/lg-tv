@@ -71,3 +71,12 @@ O Nintendo Switch não tem API de presença, então a entrada dele mostra só o 
    ```
 
 O app aparece na lista de apps como "Launcher".
+
+## Abrir o launcher ao ligar a TV
+
+Os scripts em `tools/init.d/` vão para a pasta de boot do Homebrew Channel, `/var/lib/webosbrew/init.d/`, sem extensão (o `run-parts` ignora nomes com ponto) e com permissão de execução:
+
+- `50-launcher`: abre o launcher no boot e sempre que a TV sai do standby (ligar pelo controle), e fecha o navegador pré-carregado. Fica em segundo plano, com cerca de 2 MB de RAM.
+- `90-cleanup-duplicates`: um minuto após o boot, mata cópias duplicadas do `com.webos.app.inputcommon`.
+
+Para conferir quais rodam: `run-parts --test /var/lib/webosbrew/init.d`.

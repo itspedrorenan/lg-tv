@@ -1,0 +1,16 @@
+#!/bin/sh
+# Script de boot do Homebrew Channel. Um minuto depois do boot, mata cópias duplicadas
+# do com.webos.app.inputcommon, mantendo a mais antiga. Já estava na TV como
+# cleanup-duplicates.sh, que o run-parts ignorava por causa do ponto no nome.
+# Roda em segundo plano para não atrasar o fim do startup do Homebrew.
+
+(
+  sleep 60
+  PIDS=$(ps aux | grep 'com.webos.app.inputcommon' | grep -v grep | awk '{print $2}' | sort -n)
+  COUNT=$(echo "$PIDS" | wc -l)
+  if [ "$COUNT" -gt 1 ]; then
+    echo "$PIDS" | tail -n +2 | while read pid; do
+      kill "$pid"
+    done
+  fi
+) >/dev/null 2>&1 &
